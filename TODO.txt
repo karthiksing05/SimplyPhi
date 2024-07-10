@@ -1,0 +1,14 @@
+General Todo:
+- AT SOME POINT: migrate everything to 4.0 and rerun the tests (compare phi-structures!)
+- todo list for optimWithPhiTest.py 
+    - add binaryOptim.py realizations
+    - add phi as derivative for first little bit
+
+AT GHP:
+- run phiTrendsTest3.py with more epochs (5-10) on one of their machines?
+
+And honestly...we're coming up around the time when thinking of Phi optimizations / simplifications
+is becoming more and more warranted--devote majority of brain cells to this now!
+- quick note: you should simplify the test to biggest subsystem --> largest possible subsystem will in most cases produce the best phi!
+
+ANOTHER NOTE: think about how to optimize
