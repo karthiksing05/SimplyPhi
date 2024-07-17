@@ -1,14 +1,18 @@
 General Todo:
-- AT SOME POINT: migrate everything to 4.0 and rerun the tests (compare phi-structures!)
-- todo list for optimWithPhiTest.py 
-    - add binaryOptim.py realizations
-    - add phi as derivative for first little bit
+- create the one-size-fits-all-tool
+- Continue working on the research paper!
 
-AT GHP:
-- run phiTrendsTest3.py with more epochs (5-10) on one of their machines?
+Also, understand the best practices to reduce a neural network apart from raw experimental
+calculations (that's the main optimization we can make rn)
+
+IN THE VERY DISTANT FUTURE:
 
 And honestly...we're coming up around the time when thinking of Phi optimizations / simplifications
 is becoming more and more warranted--devote majority of brain cells to this now!
-- quick note: you should simplify the test to biggest subsystem --> largest possible subsystem will in most cases produce the best phi!
+- quick note: you should simplify the test to biggest subsystem --> largest possible subsystem will
+  in most cases produce the best phi!
 
-ANOTHER NOTE: think about how to optimize
+ANOTHER NOTE: think about how to value smaller subsystems. Obviously the values of phi will not be
+as big, but by calculating the theoretical maximums for phi for each subset state, we can identify
+the most relatively conscious parts.
+- along with this, focus on how 
