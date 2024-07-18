@@ -1,15 +1,34 @@
 General Todo: (DO ALL THIS TMRW!)
-- program a regression experiment from scratch that uses the bins to the advantage, test with that
-- if need be, revisit the classification thing and see if you can identify why the backward TPM
-  couldn't be calculated properly
-- Continue working on the research paper! Finish Question + Hypotheses and Psychology Background!
+- Finish Question + Hypotheses and Psychology Background!
+- Thoroughly document (in a google doc or smth) the primary pivots made
+- finish the categorical variable code
+- generalize the layer analysis code too!
+- At some point in the future too: interpret all the findings!
 
-At some point in the future too: interpret the findings from phiTrendsTest4.py!
+- the backward TPM couldn't be properly calculated because of the "weirdness" of the 0s and 1s
+  probabilities - > can confirm that this is the main problem, didn't work with a randomly
+  generated TPM either
 
-Also, understand the best practices to reduce a neural network apart from raw experimental
-calculations (that's the main optimization we can make rn)
+OKOK this is the strategy: (need to document this at some point)
+- create an intermediary layer of neurons and then just use those as activations for the output
+  fire b\c this is essentially instead of us doing the binning, the NN is taking care of it
+  for us (we can also technically do this for the input, this is that whole "only interpret the
+  middle" idea that I had at the beginning which is really sick!)
+  - we can create a separate experiment to figure out whether using this as a technique for
+    reducing complexity is valuable to analysis with IIT! (AFTER the one-size-fits-all)
+  - the only drawback I see rn is that directly modifying a hidden layer is kinda weird but
+    definitely probably possible!
+  - RQ: this works because we're only concerned with causality, not interpretable accuracy.
+    So if the neural network makes conscious decisions, even if we don't understand those
+    decisions, it'll still reflect powerfully in the IIT analysis when we look at relationships btw
+    phis and phi-structures
 
 IN THE VERY DISTANT FUTURE:
+
+Understand the best practices to reduce a neural network apart from raw experimental
+calculations (that's the main optimization we can make rn)
+- based on the test we just did, can reduce neural network through two layers which is hella funny
+  but also could work well
 
 And honestly...we're coming up around the time when thinking of Phi optimizations / simplifications
 is becoming more and more warranted--devote majority of brain cells to this now!
@@ -19,4 +38,3 @@ is becoming more and more warranted--devote majority of brain cells to this now!
 ANOTHER NOTE: think about how to value smaller subsystems. Obviously the values of phi will not be
 as big, but by calculating the theoretical maximums for phi for each subset state, we can identify
 the most relatively conscious parts.
-- along with this, focus on how 
