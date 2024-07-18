@@ -122,6 +122,8 @@ def evaluate_tpm4(tpm):
     big_phi_avg /= len(all_test_states)
     return phi_avg, big_phi_avg, sias, structs
 
+losses = []
+accuracies = []
 phi_avgs = []
 big_phi_avgs = []
 all_sias = []
@@ -129,7 +131,10 @@ all_structs = []
 
 for j in range(NUM_EPOCHS):
     print(f"EPOCH {j}:")
-    model.fit(preprocessed_X, preprocessed_y, epochs=1, verbose=1)
+    history = model.fit(preprocessed_X, preprocessed_y, epochs=1, verbose=1)
+
+    losses.append(history.history['loss'])
+    accuracies.append(history.history['binary_accuracy'])
 
     tpm = []
 
@@ -157,5 +162,5 @@ for j in range(NUM_EPOCHS):
     print(f"Big Phi Avg for EPOCH {j}: {big_phi_avg}")
 
 with open("phiTrendsTest4.pickle", "wb") as f:
-    pickle.dump([[phi_avgs, big_phi_avgs, all_sias, all_structs], model, X, y], f)
+    pickle.dump([[losses, accuracies, phi_avgs, big_phi_avgs, all_sias, all_structs], model, X, y], f)
 

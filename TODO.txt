@@ -1,6 +1,10 @@
-General Todo:
-- create the one-size-fits-all-tool
-- Continue working on the research paper!
+General Todo: (DO ALL THIS TMRW!)
+- program a regression experiment from scratch that uses the bins to the advantage, test with that
+- if need be, revisit the classification thing and see if you can identify why the backward TPM
+  couldn't be calculated properly
+- Continue working on the research paper! Finish Question + Hypotheses and Psychology Background!
+
+At some point in the future too: interpret the findings from phiTrendsTest4.py!
 
 Also, understand the best practices to reduce a neural network apart from raw experimental
 calculations (that's the main optimization we can make rn)

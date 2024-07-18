@@ -46,14 +46,7 @@ X = scaler.fit_transform(X)
 encoder = OneHotEncoder(sparse_output=False)
 y = encoder.fit_transform(y)
 
-# NOTE: the output preprocessing for BitCnts relies on being a multiple of the number of output
-# classes if the data is classification
-# NOTE: long-term create a platform that does this for you! modifying variables over and over in a script
-# isn't enough
-
-# TODO find a good way to process and encode/decode outputs in general
-
-bitCnts = [3, 3, 3, 3]
+bitCnts = [2, 2, 2, 2]
 binCnts = [2 ** x for x in bitCnts]
 
 NUM_INPUTS = len(X[0])
@@ -107,25 +100,15 @@ def input_TPM_to_NN(sample):
 
 # converts the classes to the X nodes stuff
 def output_NN_to_TPM(sample): # defining output in terms of what we read from the neural network
-    if type(sample) == np.ndarray:
-        sample = sample[0]
-    sample = int(sample)
-    portion = np.zeros(NUM_OUTPUTS)
-    portion[sample] = 1
-    output = list(portion) * int(TOTAL_NODES / NUM_OUTPUTS)
+    sample = np.argmax(sample)
+    output = [0] * TOTAL_NODES
+    output[sample] = 1
     return output
 
 # converts the nodes to classes
-def output_TPM_to_NN(output): # interpreting readings of the neural network in terms of the sample
-    # actually we have a couple different options here: can go for an average or a majority rules
-    # will try average first but TODO this
-    cnts = [0] * NUM_OUTPUTS
-    for i in range(int(TOTAL_NODES / NUM_OUTPUTS)):
-        for j in range(NUM_OUTPUTS):
-            cnts[j] += output[NUM_OUTPUTS * i + j]
+def output_TPM_to_NN(output):
 
-    decoded_output = [0] * NUM_OUTPUTS
-    decoded_output[np.argmax(cnts)] = 1
+    decoded_output = output[:NUM_OUTPUTS]
 
     return decoded_output
 
@@ -147,11 +130,17 @@ model = tf.keras.Sequential([
 # Quick note on loss function and metric: this is weird because of our data being multiple outputs BUT it's all the same LOL this is making me laugh.
 model.compile(
     loss=tf.keras.losses.CategoricalCrossentropy(),
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0075),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.05),
     metrics=["accuracy"]
 )
 
-NUM_EPOCHS = 5
+NUM_EPOCHS = 8
+
+# for j in range(NUM_EPOCHS):
+#     print(f"EPOCH {j}:")
+#     history = model.fit(preprocessed_X, preprocessed_y, epochs=1, verbose=1)
+
+# exit()
 
 all_states = list(itertools.product([0, 1], repeat=TOTAL_NODES))
 
@@ -162,7 +151,7 @@ def evaluate_tpm4(tpm):
     A library-based evaluation using IIT 4.0's built-in functions
     """
 
-    labels = tuple([f"Node{i}" for i in range(TOTAL_NODES)])
+    labels = tuple([f"Node_{i}" for i in range(TOTAL_NODES)])
 
     substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
 
@@ -213,9 +202,15 @@ for j in range(NUM_EPOCHS):
             print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
             percent_to_complete += interval
 
+    print(f"Completed {i + 1} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+
     tpm = np.array(tpm)
 
-    # phi_avg, MCs = evaluate_tpm(tpm)
+    # TODO OK we've made progress - issue is that the cause_tpm isn't properly generating
+    # this is also because the value for 'normalization' is 0
+    # part of me is questioning why the normalization value works for the phiTrendsTest4.py
+    # but not for this test hmm
+
     phi_avg, big_phi_avg, phi_sias, phi_structures = evaluate_tpm4(tpm)
     phi_avgs.append(phi_avg)
     big_phi_avgs.append(big_phi_avg)
