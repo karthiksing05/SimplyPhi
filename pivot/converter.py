@@ -139,7 +139,7 @@ class Converter(object):
 
         return out
     
-    def get_TPM_activations(self, model, X):
+    def get_TPM_activations(self, model, X, noising=0.01):
         """
         Helper method to potentially solve the probability issue! Essentially, we create a
         layer before our actual output layer with enough nodes to represent the binning and
@@ -159,5 +159,13 @@ class Converter(object):
 
         # grabs the second-to-last layer, which should be our transforming layer
         relevantActivations = activations[-2][0]
+
+        for activation in relevantActivations:
+            if activation > 1:
+                print(relevantActivations)
+                print(X)
+
+        # NOTE implementing noising natively here to see if it resolves that problem too
+        relevantActivations = np.where(relevantActivations == 0, noising, relevantActivations)
 
         return relevantActivations

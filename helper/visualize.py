@@ -30,7 +30,7 @@ def build_graph(model):
 
 # Build the graph
 
-def visualize_graph(model, filename):
+def visualize_graph(model):
 
     G = build_graph(model)
 
@@ -63,5 +63,5 @@ def visualize_graph(model, filename):
     nx.draw_networkx_labels(G, pos, labels, font_size=8)
 
     plt.title("Neural Network Architecture")
-    plt.savefig(filename)
+    # plt.savefig(filename)
     plt.show()

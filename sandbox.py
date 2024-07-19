@@ -1,3 +1,4 @@
+import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -18,10 +19,11 @@ pyphi.config.VALIDATE_SUBSYSTEM_STATES = False
 import itertools
 import pickle
 
-with open("phiTrendsTest4.pickle", "rb") as f:
-    datalst = pickle.load(f)[0]
+with open("regressionTest.pickle", "rb") as f:
+    datalst = pickle.load(f)
 
-    print(datalst[0])
+    print(datalst[0][0])
+    print(datalst[0][2])
 
     # for mc_lst in datalst[1]:
     #     print([mc.phi for mc in mc_lst])
