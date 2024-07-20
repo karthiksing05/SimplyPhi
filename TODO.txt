@@ -1,11 +1,11 @@
-General Todo: (DO ALL THIS TMRW!)
-- Finish Question + Hypotheses and Psychology Background!
-- Thoroughly document (in a google doc or smth) the primary pivots made
-- finish the categorical variable code (build the universal model!)
-- generalize the layer analysis code too!
-- At some point in the future too: interpret all the findings!
-    - analyze phiTrendsTest4 for correlation
-    - analyze regressionTest for overfitting relationship
+General Todo:
+TODAY:
+- Thoroughly document (in a google doc or smth) the primary pivots made (** main priority if nothing else **)
+- analysis of both tests, create graphs w matplotlib
+- Write code for the universal test, to be translated to pseudocode for the research paper
+IN FUTURE:
+- interpret the findings of the graphs and stuff, make conjectures
+- write the future works section and conclusion
 
 - the backward TPM couldn't be properly calculated because of the "weirdness" of the 0s and 1s
   probabilities - > can confirm that this is the main problem, didn't work with a randomly
@@ -26,6 +26,9 @@ OKOK this is the strategy: (need to document this at some point)
     phis and phi-structures
 
 IN THE VERY DISTANT FUTURE:
+
+OKOK SO PHI WORKS - goal is now to run the first couple tests and program the universal test to interpret loss
+off of phi optimizations rather than traditional loss metrics 
 
 Understand the best practices to reduce a neural network apart from raw experimental
 calculations (that's the main optimization we can make rn)

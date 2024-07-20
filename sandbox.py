@@ -23,7 +23,22 @@ with open("regressionTest.pickle", "rb") as f:
     datalst = pickle.load(f)
 
     print(datalst[0][0])
-    print(datalst[0][2])
 
-    # for mc_lst in datalst[1]:
-    #     print([mc.phi for mc in mc_lst])
+    losses = [x['loss'][0] for x in datalst[0][0]]
+    lossDerivatives = np.gradient(losses)
+    phis = datalst[0][2]
+    phiDerivatives = np.gradient(phis)
+
+    fig, ax = plt.subplots()
+
+    ax.plot(losses, label='Loss')
+    ax.plot(phis, label='Phi')
+    ax.plot(phiDerivatives, label='Change in Phi')
+
+    ax.set_title('Epochs for Regression Modeling')
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel('Value')
+
+    ax.legend()
+
+    plt.show()
