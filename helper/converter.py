@@ -32,7 +32,7 @@ class Converter(object):
     --> a categorical variable with 3 categories, a numerical variable with 2^2 bins, and
         a numerical variable with 2^3 bins
     outputVars = [('num', 8)]
-    --> a numerical variable with 2^8
+    --> a numerical variable with 2^8 bins
     """
 
     inputVars = []
@@ -41,6 +41,9 @@ class Converter(object):
     def __init__(self, inputVars:list, outputVars:list):
         self.inputVars = inputVars
         self.outputVars = outputVars
+
+        self.numInputSpaces = sum([x[1] if x[0] == "cat" else 1 for x in self.inputVars])
+        self.numOutputSpaces = sum([x[1] if x[0] == "cat" else 1 for x in self.outputVars])
 
         self.inputNodes = sum([x[1] for x in self.inputVars])
         self.outputNodes = sum([x[1] for x in self.outputVars])
@@ -53,93 +56,111 @@ class Converter(object):
 
         numBits = 0
 
-        for i, coord in enumerate(sample):
-            coord -= 1e-6
+        i = 0
+        varIter = 0
+        while varIter < len(self.inputVars):
 
-            if self.inputVars[i][0] == "num":
-                idxs = [numBits + x for x in _get_indices_of_ones(int(np.floor(coord * (2 ** self.inputVars[i][1]))))]
+            if self.inputVars[varIter][0] == "cat": # TODO VALIDATE THAT THIS WORKS
+                idxs = [numBits + x for x in range(self.inputVars[varIter][1]) if sample[i + x]]
+                i += self.inputVars[varIter][1]
 
-                for idx in idxs:
-                    preprocessed[idx] = 1
-            elif self.inputVars[i][0] == "cat":
-                # TODO figure out how to treat the categorical variables depending on how you use them
-                pass
+            elif self.inputVars[varIter][0] == "num":
+                coord = sample[i]
+                coord -= 1e-6
+                idxs = [numBits + x for x in _get_indices_of_ones(int(np.floor(coord * (2 ** self.inputVars[varIter][1]))))]
+                i += 1
 
-            numBits += self.inputVars[i][1]
+            for idx in idxs:
+                preprocessed[idx] = 1
+
+            numBits += self.inputVars[varIter][1]
+            varIter += 1
 
         return preprocessed
 
     # prepares the bin mode for transitional input (this is lowk our input layer)
     def nodes_to_input(self, sample):
 
-        inp = np.zeros((len(self.inputVars),))
+        inp = np.zeros((self.numInputSpaces,))
 
         numBits = 0
 
-        for i, var in enumerate(self.inputVars):
+        currPlace = 0
+
+        for var in self.inputVars:
 
             if var[0] == "num":
                 for b in range(var[1]):
-                    inp[i] += sample[numBits + b] * (2 ** b)
-                inp[i] /= (2 ** var[1])
+                    inp[currPlace] += sample[numBits + b] * (2 ** b)
+                inp[currPlace] /= (2 ** var[1])
+                currPlace += 1
 
             elif var[0] == "cat":
-                # TODO figure this out too (but tbh this is definitely just adding the original 
-                # thing if one-hot-encoding is preserved, depending on how we interpret categorical
-                # variables)
-                pass
+                for j in range(var[1]):
+                    inp[currPlace + j] = sample[numBits + j]
+                currPlace += var[1]
 
             numBits += var[1]
 
         return inp
 
     # converts the classes to the X nodes stuff
-    def output_to_nodes(self, sample):
+    def output_to_nodes(self, sample, regularization=0.0):
         preprocessed = np.zeros(self.totalNodes)
 
         numBits = 0
 
-        for i, coord in enumerate(sample):
-            coord -= 1e-6
+        i = 0
+        varIter = 0
+        while varIter < len(self.outputVars):
 
-            if self.outputVars[i][0] == "num":
-                idxs = [numBits + x for x in _get_indices_of_ones(int(np.floor(coord * (2 ** self.outputVars[i][1]))))]
+            if self.outputVars[varIter][0] == "cat": # TODO VALIDATE THAT THIS WORKS
+                idxs = [numBits + x for x in range(self.outputVars[varIter][1]) if sample[i + x]]
+                i += self.outputVars[varIter][1]
 
-                for idx in idxs:
-                    preprocessed[idx] = 1
-            elif self.outputVars[i][0] == "cat":
-                # TODO figure out how to treat the categorical variables depending on how you use them
-                pass
+            elif self.outputVars[varIter][0] == "num":
+                coord = sample[i]
+                coord -= 1e-6
+                idxs = [numBits + x for x in _get_indices_of_ones(int(np.floor(coord * (2 ** self.outputVars[varIter][1]))))]
+                i += 1
 
-            numBits += self.outputVars[i][1]
+            for idx in idxs:
+                preprocessed[idx] = 1
+
+            numBits += self.outputVars[varIter][1]
+            varIter += 1
+
+        preprocessed = np.where(preprocessed == 0, regularization, preprocessed)
 
         return preprocessed
 
     # converts the nodes to classes
     def nodes_to_output(self, sample):
 
-        out = np.zeros((len(self.outputVars),))
+        out = np.zeros((self.numInputSpaces,))
 
         numBits = 0
 
-        for i, var in enumerate(self.outputVars):
+        currPlace = 0
+
+        for var in self.outputVars:
 
             if var[0] == "num":
                 for b in range(var[1]):
-                    out[i] += sample[numBits + b] * (2 ** b)
-                out[i] /= (2 ** var[1])
+                    out[currPlace] += sample[numBits + b] * (2 ** b)
+                out[currPlace] /= (2 ** var[1])
+                currPlace += 1
 
             elif var[0] == "cat":
-                # TODO figure this out too (but tbh this is definitely just adding the original 
-                # thing if one-hot-encoding is preserved, depending on how we interpret categorical
-                # variables)
-                pass
+                for j in range(var[1]):
+                    out[currPlace + j] = sample[numBits + j]
+                currPlace += var[1]
 
             numBits += var[1]
 
         return out
     
-    def get_TPM_activations(self, model, X, noising=0.01):
+    def get_TPM_activations(self, model, X, regularization=0.01):
         """
         Helper method to potentially solve the probability issue! Essentially, we create a
         layer before our actual output layer with enough nodes to represent the binning and
@@ -162,10 +183,11 @@ class Converter(object):
 
         for activation in relevantActivations:
             if activation > 1:
+                print("ACTIVATION ENERGY BIGGER THAN ONE WTF")
                 print(relevantActivations)
                 print(X)
 
         # NOTE implementing noising natively here to see if it resolves that problem too
-        relevantActivations = np.where(relevantActivations == 0, noising, relevantActivations)
+        relevantActivations = np.where(relevantActivations == 0, regularization, relevantActivations)
 
         return relevantActivations

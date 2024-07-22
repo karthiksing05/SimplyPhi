@@ -1,4 +1,5 @@
 import numpy as np
+import pyphi.new_big_phi
 import tensorflow as tf
 
 import os
@@ -25,59 +26,99 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
 
 # my pivot based import!
-from pivot.converter import Converter
+from helper.converter import Converter
 
 # visualizing the model
 from helper.visualize import visualize_graph
 
-NUM_INPUTS = 3
-NUM_OUTPUTS = 1
+### NOTE CHATGPT DATA WOOO
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
 
-X, y = make_regression(
-    n_samples=1000,
-    n_features=NUM_INPUTS,
-    noise=5
-)
+categories = ['A', 'B', 'C']
+n_samples = 100
+categorical_data = np.random.choice(categories, n_samples)
+
+category_map = {'A': 0, 'B': 1, 'C': 2}
+categorical_data_numeric = np.vectorize(category_map.get)(categorical_data)
+
+numerical_data1 = np.random.randn(n_samples)
+numerical_data2 = np.random.randn(n_samples)
+
+data = pd.DataFrame({
+    'Category': categorical_data_numeric,
+    'Numerical1': numerical_data1,
+    'Numerical2': numerical_data2
+})
+
+X = data[['Category', 'Numerical1', 'Numerical2']].values
+
+coefficients = np.array([1.5, -2.0, 3.0])
+y = X.dot(coefficients) + np.random.randn(n_samples) * 0.5
+
+### MY STUFF STARTS HERE
 
 try:
     y[0][0]
 except IndexError:
     y = y.reshape((-1, 1))
 
-inputVars = [('num', 2), ('num', 2), ('num', 2)]
-outputVars = [('num', 6)]
+# print(X[0:5])
+# print(y[0:5])
+
+inputVars = [('cat', 3), ('num', 2), ('num', 2)]
+outputVars = [('num', 7)]
 
 inputPreprocessors = []
 outputPreprocessors = []
 
 # for each X-variable, if it's numerical, scale it, and if it's categorical, onehotencode it
+newX = np.array([])
 for i, var in enumerate(inputVars):
     if var[0] == 'num':
         scaler = MinMaxScaler()
-        X[:, i] = (scaler.fit_transform(X[:, i].reshape(-1, 1))).reshape(-1)
+        transformed = scaler.fit_transform(X[:, i].reshape(-1, 1))
         inputPreprocessors.append(scaler)
     elif var[0] == 'cat':
-        # TODO figure this out in the future, how to inplace-replace one categorical column
-        # with however many one-hot-encoding columns are needed
-        pass
+        encoder = OneHotEncoder(sparse_output=False)
+        transformed = encoder.fit_transform(X[:, i].reshape(-1, 1))
+        inputPreprocessors.append(encoder)
     else:
         raise Exception("Wrong datatype specification for one of the variables in 'inputVars'.")
+    if not newX.any():
+        newX = transformed
+    else:
+        newX = np.hstack((newX, transformed))
+
+X = newX
 
 # same for each y-variable
+newY = np.array([])
 for i, var in enumerate(outputVars):
     if var[0] == 'num':
         scaler = MinMaxScaler()
-        y[:, i] = (scaler.fit_transform(y[:, i].reshape(-1, 1))).reshape(-1)
-        outputPreprocessors.append(scaler)
+        transformed = scaler.fit_transform(y[:, i].reshape(-1, 1))
+        inputPreprocessors.append(scaler)
     elif var[0] == 'cat':
-        # TODO figure this out in the future, how to inplace-replace one categorical column
-        # with however many one-hot-encoding columns are needed
-        pass
+        encoder = OneHotEncoder(sparse_output=False)
+        transformed = encoder.fit_transform(y[:, i].reshape(-1, 1))
+        inputPreprocessors.append(encoder)
     else:
-        raise Exception("Wrong datatype specification for one of the variables in 'outputVars'.")
+        raise Exception("Wrong datatype specification for one of the variables in 'inputVars'.")
+    if not newY.any():
+        newY = transformed
+    else:
+        newY = np.hstack((newY, transformed))
+
+y = newY
 
 # MAGIC BIT WOOO
 converter = Converter(inputVars, outputVars)
+
+# Global Phi-calc related constants
+all_states = list(itertools.product([0, 1], repeat=converter.totalNodes))
+cm = np.ones((converter.totalNodes, converter.totalNodes))
 
 # the only reason we are doing this "preprocessing" is to simulate the granularity that will be
 # present in actual data encoding for the prediction pipeline!
@@ -90,11 +131,11 @@ X_train, X_test, y_train, y_test = train_test_split(preprocessed_X, preprocessed
 model = tf.keras.Sequential([
     tf.keras.layers.Dense(3, activation='relu', name='hidden1'),
     tf.keras.layers.Dense(converter.totalNodes, activation='relu', name='TPMOutput'),
-    tf.keras.layers.Dense(NUM_OUTPUTS, activation='relu', name='userOutput')
+    tf.keras.layers.Dense(converter.numOutputSpaces, activation='relu', name='userOutput')
 ])
 
 # for some reason, need to specify the input like this?
-model(tf.keras.Input(shape=(NUM_INPUTS,), name="input"))
+model(tf.keras.Input(shape=(converter.numInputSpaces,), name="input"))
 
 # Quick note on loss function and metric: this is weird because of our data being multiple outputs BUT it's all the same LOL this is making me laugh.
 model.compile(
@@ -102,9 +143,6 @@ model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=0.0075),
     metrics=["mean_squared_error"]
 )
-
-# visualizing what the model looks like!
-visualize_graph(model, "regressionModelArch.png")
 
 NUM_EPOCHS = 3
 
@@ -116,9 +154,45 @@ NUM_EPOCHS = 3
 
 # exit()
 
-all_states = list(itertools.product([0, 1], repeat=converter.totalNodes))
+def phi_loss_func(model):
+    """
+    THIS IS THE EVALUATION BUT AS A LOSS FUNCTION!!!
+    """
 
-cm = np.ones((converter.totalNodes, converter.totalNodes))
+    tpm = []
+
+    print(f"Completing {len(all_states)} iters to calculate TPM:")
+    interval = 0.1
+    percent_to_complete = interval
+
+    for i, state in enumerate(all_states):
+        npState = np.array([converter.nodes_to_input(state)]).reshape(1, -1)
+        # activations = converter.get_TPM_activations(model, npState)
+        activations = converter.output_to_nodes(model.predict(npState, verbose=0), regularization=0.01)
+        tpm.append(activations)
+        if i / len(all_states) >= percent_to_complete:
+            print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+            percent_to_complete += interval
+
+    print(f"Completed {i + 1} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+
+    tpm = np.array(tpm)
+
+    labels = tuple([f"Node_{i}" for i in range(converter.totalNodes)])
+
+    substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
+
+    big_phi_avg = 0
+
+    for state in all_states:
+        fc_sia = pyphi.new_big_phi.maximal_complex(substrate, state)
+        if type(fc_sia) != pyphi.new_big_phi.NullPhiStructure:
+            fc_structure = pyphi.new_big_phi.phi_structure(pyphi.Subsystem(substrate, state, nodes=fc_sia.node_indices))
+            big_phi_avg += fc_structure.big_phi
+
+    big_phi_avg /= len(all_states)
+    big_phi_avg *= -1 # NEGATING THE LOSS TO MAKE THE MODEL BETTER
+    return big_phi_avg
 
 def evaluate_tpm4(tpm):
     """
@@ -136,11 +210,15 @@ def evaluate_tpm4(tpm):
 
     for state in all_states:
         fc_sia = pyphi.new_big_phi.maximal_complex(substrate, state)
-        fc = pyphi.Subsystem(substrate, state, nodes=fc_sia.node_indices)
-        fc_structure = pyphi.new_big_phi.phi_structure(fc)
+        if type(fc_sia) == pyphi.new_big_phi.NullPhiStructure:
+            fc = None
+            fc_structure = None
+        else:
+            fc = pyphi.Subsystem(substrate, state, nodes=fc_sia.node_indices)
+            fc_structure = pyphi.new_big_phi.phi_structure(fc)
+            phi_avg += fc_structure.phi
+            big_phi_avg += fc_structure.big_phi
 
-        phi_avg += fc_structure.phi
-        big_phi_avg += fc_structure.big_phi
         sias.append(fc_sia)
         structs.append(fc_structure)
 
@@ -168,7 +246,8 @@ for j in range(NUM_EPOCHS):
 
     for i, state in enumerate(all_states):
         npState = np.array([converter.nodes_to_input(state)]).reshape(1, -1)
-        activations = converter.get_TPM_activations(model, npState)
+        # activations = converter.get_TPM_activations(model, npState)
+        activations = converter.output_to_nodes(model.predict(npState, verbose=0), regularization=0.01)
         tpm.append(activations)
         if i / len(all_states) >= percent_to_complete:
             print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")

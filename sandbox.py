@@ -19,7 +19,7 @@ pyphi.config.VALIDATE_SUBSYSTEM_STATES = False
 import itertools
 import pickle
 
-with open("regressionTest.pickle", "rb") as f:
+with open("universalTest.pickle", "rb") as f:
     datalst = pickle.load(f)
 
     print(datalst[0][0])
