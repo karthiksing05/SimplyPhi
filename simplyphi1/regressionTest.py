@@ -13,7 +13,7 @@ collections.MutableMapping = collections.abc.MutableMapping
 collections.Sequence = collections.abc.Sequence
 
 import pyphi
-pyphi.config.PROGRESS_BARS = False # may need to comment this one out for bigger networks, but this is fine for now
+pyphi.config.PROGRESS_BARS = True # may need to comment this one out for bigger networks, but this is fine for now
 pyphi.config.VALIDATE_SUBSYSTEM_STATES = False
 
 import itertools
@@ -84,7 +84,6 @@ preprocessed_X = np.array([converter.nodes_to_input(converter.input_to_nodes(sam
 preprocessed_y = np.array([converter.nodes_to_output(converter.output_to_nodes(sample)) for sample in y])
 
 model = tf.keras.Sequential([
-    tf.keras.layers.Dense(3, activation='relu', name='hidden1'),
     tf.keras.layers.Dense(converter.totalNodes, activation='relu', name='TPMOutput'),
     tf.keras.layers.Dense(NUM_OUTPUTS, activation='relu', name='userOutput')
 ])
@@ -95,14 +94,14 @@ model(tf.keras.Input(shape=(NUM_INPUTS,), name="input"))
 # Quick note on loss function and metric: this is weird because of our data being multiple outputs BUT it's all the same LOL this is making me laugh.
 model.compile(
     loss=tf.keras.losses.MeanSquaredError(),
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0025),
     metrics=["mean_squared_error"]
 )
 
 # visualizing what the model looks like!
 # visualize_graph(model)
 
-NUM_EPOCHS = 6
+NUM_EPOCHS = 10
 
 # for j in range(NUM_EPOCHS):
 #     print(f"EPOCH {j}:")
@@ -181,4 +180,4 @@ for j in range(NUM_EPOCHS):
     print(f"Big Phi Avg for EPOCH {j}: {big_phi_avg}")
 
 with open("regressionTest.pickle", "wb") as f:
-    pickle.dump([[iterations, phi_avgs, big_phi_avgs, all_sias, all_structs], model, converter, X, y], f)
+    pickle.dump([[iterations, phi_avgs, big_phi_avgs, all_sias, all_structs], model, X, y], f)

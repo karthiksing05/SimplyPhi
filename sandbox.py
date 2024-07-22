@@ -1,6 +1,7 @@
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import os
 
 os.environ["PYPHI_WELCOME_OFF"] = "yes"
@@ -19,10 +20,11 @@ pyphi.config.VALIDATE_SUBSYSTEM_STATES = False
 import itertools
 import pickle
 
-with open("universalTest.pickle", "rb") as f:
-    datalst = pickle.load(f)
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 
-    print(datalst[0][0])
+with open("regressionTest.pickle", "rb") as f:
+    datalst = pickle.load(f)
 
     losses = [x['loss'][0] for x in datalst[0][0]]
     lossDerivatives = np.gradient(losses)
@@ -32,8 +34,8 @@ with open("universalTest.pickle", "rb") as f:
     fig, ax = plt.subplots()
 
     ax.plot(losses, label='Loss')
-    ax.plot(phis, label='Phi')
-    ax.plot(phiDerivatives, label='Change in Phi')
+    # ax.plot(phis, label='Phi')
+    # ax.plot(phiDerivatives, label='Change in Phi')
 
     ax.set_title('Epochs for Regression Modeling')
     ax.set_xlabel('Epoch')
