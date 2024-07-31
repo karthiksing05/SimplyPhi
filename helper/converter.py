@@ -137,7 +137,7 @@ class Converter(object):
     # converts the nodes to classes
     def nodes_to_output(self, sample):
 
-        out = np.zeros((self.numInputSpaces,))
+        out = np.zeros((self.numOutputSpaces,))
 
         numBits = 0
 
@@ -182,8 +182,8 @@ class Converter(object):
         relevantActivations = activations[-2][0]
 
         for activation in relevantActivations:
-            if activation > 1:
-                print("ACTIVATION ENERGY BIGGER THAN ONE WTF")
+            if activation > 1 or activation < 0:
+                print("ACTIVATION ENERGY not in range [0, 1]")
                 print(relevantActivations)
                 print(X)
 

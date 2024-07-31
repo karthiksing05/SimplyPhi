@@ -1,35 +1,7 @@
-General Todo:
-TODAY:
-- Thoroughly document (in a google doc or smth) the primary pivots made (** main priority if nothing else **)
-- analysis of both tests, create graphs w matplotlib
-- Write code for the universal test, to be translated to pseudocode for the research paper
-IN FUTURE:
-- interpret the findings of the graphs and stuff, make conjectures
-- write the future works section and conclusion
-
-- the backward TPM couldn't be properly calculated because of the "weirdness" of the 0s and 1s
-  probabilities - > can confirm that this is the main problem, didn't work with a randomly
-  generated TPM either
-
-OKOK this is the strategy: (need to document this at some point)
-- create an intermediary layer of neurons and then just use those as activations for the output
-  fire b\c this is essentially instead of us doing the binning, the NN is taking care of it
-  for us (we can also technically do this for the input, this is that whole "only interpret the
-  middle" idea that I had at the beginning which is really sick!)
-  - we can create a separate experiment to figure out whether using this as a technique for
-    reducing complexity is valuable to analysis with IIT! (AFTER the one-size-fits-all)
-  - the only drawback I see rn is that directly modifying a hidden layer is kinda weird but
-    definitely probably possible!
-  - RQ: this works because we're only concerned with causality, not interpretable accuracy.
-    So if the neural network makes conscious decisions, even if we don't understand those
-    decisions, it'll still reflect powerfully in the IIT analysis when we look at relationships btw
-    phis and phi-structures
+BRAIN WAVE BRAIN WAVE BRAIN WAVE: Create a generative loss function that utilizes phi as its metric
+for optimization?? ngl I don't even understand what this means but I'm such a fan XDD
 
 IN THE VERY DISTANT FUTURE:
-
-OKOK SO PHI WORKS - goal is now to run the first couple tests and program the universal test to interpret loss
-off of phi optimizations rather than traditional loss metrics 
-
 Understand the best practices to reduce a neural network apart from raw experimental
 calculations (that's the main optimization we can make rn)
 - based on the test we just did, can reduce neural network through two layers which is hella funny

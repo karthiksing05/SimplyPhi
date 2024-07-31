@@ -1,1 +1,2 @@
 git+https://github.com/wmayner/pyphi.git@feature/iit-4.0
+pyphi[visualize]

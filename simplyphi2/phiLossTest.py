@@ -1,6 +1,13 @@
+"""
+Expanding universal test to apply phi-values to neural network optimization routine!
+
+Takes native account of phi for optimization!
+"""
+
 import numpy as np
-import pyphi.new_big_phi
 import tensorflow as tf
+import keras
+tf.config.run_functions_eagerly(True)
 
 import os
 
@@ -36,11 +43,11 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
-categories = ['A', 'B', 'C']
+categories = ['A', 'B']
 n_samples = 100
 categorical_data = np.random.choice(categories, n_samples)
 
-category_map = {'A': 0, 'B': 1, 'C': 2}
+category_map = {'A': 0, 'B': 1}
 categorical_data_numeric = np.vectorize(category_map.get)(categorical_data)
 
 numerical_data1 = np.random.randn(n_samples)
@@ -67,8 +74,8 @@ except IndexError:
 # print(X[0:5])
 # print(y[0:5])
 
-inputVars = [('cat', 3), ('num', 2), ('num', 2)]
-outputVars = [('num', 7)]
+inputVars = [('cat', 2), ('num', 2), ('num', 2)]
+outputVars = [('num', 6)]
 
 inputPreprocessors = []
 outputPreprocessors = []
@@ -125,145 +132,160 @@ cm = np.ones((converter.totalNodes, converter.totalNodes))
 preprocessed_X = np.array([converter.nodes_to_input(converter.input_to_nodes(sample)) for sample in X])
 preprocessed_y = np.array([converter.nodes_to_output(converter.output_to_nodes(sample)) for sample in y])
 
-# Split the data for training and testing
-X_train, X_test, y_train, y_test = train_test_split(preprocessed_X, preprocessed_y, test_size=0.20)
-
-model = tf.keras.Sequential([
-    tf.keras.layers.Dense(3, activation='relu', name='hidden1'),
-    tf.keras.layers.Dense(converter.totalNodes, activation='relu', name='TPMOutput'),
-    tf.keras.layers.Dense(converter.numOutputSpaces, activation='relu', name='userOutput')
-])
-
-# for some reason, need to specify the input like this?
-model(tf.keras.Input(shape=(converter.numInputSpaces,), name="input"))
-
-# Quick note on loss function and metric: this is weird because of our data being multiple outputs BUT it's all the same LOL this is making me laugh.
-model.compile(
-    loss=tf.keras.losses.MeanSquaredError(),
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0075),
-    metrics=["mean_squared_error"]
-)
-
-NUM_EPOCHS = 3
-
-# for j in range(NUM_EPOCHS):
-#     print(f"EPOCH {j}:")
-#     history = model.fit(X_train, y_train, epochs=1, verbose=1)
-
-# print(model.evaluate(X_test, y_test))
-
-# exit()
-
+# TODO TURN THIS INTO A GRADIENTTTT
 def phi_loss_func(model):
     """
-    THIS IS THE EVALUATION BUT AS A LOSS FUNCTION!!!
+    THIS IS THE EVALUATION BUT AS A LOSS FUNCTION!!! Need to write it as a function
+    within a function because of the way that Keras auto-accepts loss functions
+
+    Solution: still need to add a small denomination of loss to associate with
     """
 
-    tpm = []
+    @tf.function
+    def loss(y_true, y_pred):
 
-    print(f"Completing {len(all_states)} iters to calculate TPM:")
-    interval = 0.1
-    percent_to_complete = interval
+        tpm = []
 
-    for i, state in enumerate(all_states):
-        npState = np.array([converter.nodes_to_input(state)]).reshape(1, -1)
-        # activations = converter.get_TPM_activations(model, npState)
-        activations = converter.output_to_nodes(model.predict(npState, verbose=0), regularization=0.01)
-        tpm.append(activations)
-        if i / len(all_states) >= percent_to_complete:
-            print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
-            percent_to_complete += interval
+        print(f"Completing {len(all_states)} iters to calculate TPM:")
+        interval = 0.1
+        percent_to_complete = interval
 
-    print(f"Completed {i + 1} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+        for i, state in enumerate(all_states):
+            npState = np.array([converter.nodes_to_input(state)]).reshape(1, -1)
+            activations = converter.get_TPM_activations(model, npState)
+            # activations = converter.output_to_nodes(model.predict(npState, verbose=0), regularization=0.01)
+            tpm.append(activations)
+            if i / len(all_states) >= percent_to_complete:
+                print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+                percent_to_complete += interval
 
-    tpm = np.array(tpm)
+        print(f"Completed {i + 1} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
 
-    labels = tuple([f"Node_{i}" for i in range(converter.totalNodes)])
+        tpm = np.array(tpm)
 
-    substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
+        labels = tuple([f"Node_{i}" for i in range(converter.totalNodes)])
 
-    big_phi_avg = 0
+        substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
 
-    for state in all_states:
-        fc_sia = pyphi.new_big_phi.maximal_complex(substrate, state)
-        if type(fc_sia) != pyphi.new_big_phi.NullPhiStructure:
-            fc_structure = pyphi.new_big_phi.phi_structure(pyphi.Subsystem(substrate, state, nodes=fc_sia.node_indices))
-            big_phi_avg += fc_structure.big_phi
+        big_phi_avg = 0
 
-    big_phi_avg /= len(all_states)
-    big_phi_avg *= -1 # NEGATING THE LOSS TO MAKE THE MODEL BETTER
-    return big_phi_avg
+        for state in all_states:
+            try:
+                fc_sia = pyphi.new_big_phi.maximal_complex(substrate, state)
+            except Exception as e:
+                print("ERROR THROWN: " + e)
+            if type(fc_sia) != pyphi.new_big_phi.NullPhiStructure:
+                fc_structure = pyphi.new_big_phi.phi_structure(pyphi.Subsystem(substrate, state, nodes=fc_sia.node_indices))
+                big_phi_avg += fc_structure.big_phi
 
-def evaluate_tpm4(tpm):
-    """
-    A library-based evaluation using IIT 4.0's built-in functions
-    """
+        big_phi_avg /= len(all_states)
 
-    labels = tuple([f"Node_{i}" for i in range(converter.totalNodes)])
+        small_dependency = tf.reduce_mean(tf.square(y_pred - tf.zeros_like(y_pred))) * 1e-6
+        big_phi_avg += small_dependency
 
-    substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
+        big_phi_avg *= -1 # NEGATING THE LOSS TO MAKE IT WORK WITH THE MODEL
+        print("BIG PHI AVG: ", big_phi_avg)
+        return tf.constant(big_phi_avg, dtype=tf.float32)
 
-    phi_avg = 0
-    big_phi_avg = 0
-    sias = []
-    structs = []
+    return loss
 
-    for state in all_states:
-        fc_sia = pyphi.new_big_phi.maximal_complex(substrate, state)
-        if type(fc_sia) == pyphi.new_big_phi.NullPhiStructure:
-            fc = None
-            fc_structure = None
-        else:
-            fc = pyphi.Subsystem(substrate, state, nodes=fc_sia.node_indices)
-            fc_structure = pyphi.new_big_phi.phi_structure(fc)
-            phi_avg += fc_structure.phi
-            big_phi_avg += fc_structure.big_phi
+# loss!
+# model.compile(
+#     loss=phi_loss_func(model),
+#     optimizer=tf.keras.optimizers.Adam(learning_rate=0.0075),
+#     metrics=["mean_squared_error"],
+#     run_eagerly=True
+# )
 
-        sias.append(fc_sia)
-        structs.append(fc_structure)
+# Split the data for training and testing
+X_train, X_test, y_train, y_test = train_test_split(preprocessed_X, preprocessed_y, test_size=0.20)
+NUM_EPOCHS = 10
 
-    phi_avg /= len(all_states)
-    big_phi_avg /= len(all_states)
-    return phi_avg, big_phi_avg, sias, structs
+def capped_relu(x):
+    return tf.keras.activations.relu(x, max_value=1)
 
-iterations = []
-phi_avgs = []
-big_phi_avgs = []
-all_sias = []
-all_structs = []
+# Define a simple model for demonstration purposes
+def create_model():
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Dense(converter.totalNodes, activation=capped_relu, name='TPMOutput', kernel_initializer=keras.initializers.RandomNormal(stddev=0.1), bias_initializer=keras.initializers.Zeros()),
+        tf.keras.layers.Dense(converter.numOutputSpaces, activation=capped_relu, name='userOutput', kernel_initializer=keras.initializers.RandomNormal(stddev=0.1), bias_initializer=keras.initializers.Zeros())
+    ])
+    return model
 
-for j in range(NUM_EPOCHS):
-    print(f"EPOCH {j}:")
-    history = model.fit(preprocessed_X, preprocessed_y, epochs=1, verbose=1)
+# Actual loss function for validation
+def actual_loss(y_true, y_pred):
+    # print(y_true, y_pred)
+    y_true = tf.cast(y_true, tf.float32)
+    loss = tf.reduce_mean(tf.square(y_true - y_pred))
+    # print(loss)
+    return loss
 
-    iterations.append(history.history)
+# Training loop using the pseudo-constant loss for training and actual loss for validation
+def train_model(model, train_dataset, val_dataset, epochs, learning_rate):
 
-    tpm = []
+    train_losses = []
+    val_losses = []
 
-    print(f"Completing {len(all_states)} iters to calculate TPM:")
-    interval = 0.1
-    percent_to_complete = interval
+    # Initialize the optimizer
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    
+    # Metrics to keep track of loss
+    train_loss_metric = tf.keras.metrics.Mean(name='train_loss')
+    val_loss_metric = tf.keras.metrics.Mean(name='val_loss')
+    
+    # Training loop
+    for epoch in range(epochs):
+        print(f"Epoch {epoch + 1}/{epochs}")
+        
+        # Training step
+        for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
+            with tf.GradientTape() as tape:
+                logits = model(x_batch_train, training=True)
+                loss_value = phi_loss_func(model)(y_batch_train, logits)
+            
+            grads = tape.gradient(loss_value, model.trainable_weights)
+            
+            optimizer.apply_gradients(zip(grads, model.trainable_weights))
+            train_loss_metric.update_state(loss_value)
+        
+        # Validation step
+        for x_batch_val, y_batch_val in val_dataset:
+            val_logits = model(x_batch_val, training=False)
+            val_loss_value = actual_loss(y_batch_val, val_logits)
+            val_loss_metric.update_state(val_loss_value)
+        
+        # Print metrics at the end of each epoch
+        train_loss = train_loss_metric.result()
+        val_loss = val_loss_metric.result()
+        print(f"Training loss: {train_loss:.4f} - Validation loss: {val_loss:.4f}")
 
-    for i, state in enumerate(all_states):
-        npState = np.array([converter.nodes_to_input(state)]).reshape(1, -1)
-        # activations = converter.get_TPM_activations(model, npState)
-        activations = converter.output_to_nodes(model.predict(npState, verbose=0), regularization=0.01)
-        tpm.append(activations)
-        if i / len(all_states) >= percent_to_complete:
-            print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
-            percent_to_complete += interval
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+        
+        # Reset metrics at the end of each epoch
+        train_loss_metric.reset_state()
+        val_loss_metric.reset_state()
 
-    print(f"Completed {i + 1} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+    return train_losses, val_losses
 
-    tpm = np.array(tpm)
+if __name__ == "__main__":
 
-    phi_avg, big_phi_avg, phi_sias, phi_structures = evaluate_tpm4(tpm)
-    phi_avgs.append(phi_avg)
-    big_phi_avgs.append(big_phi_avg)
-    all_sias.append(phi_sias)
-    all_structs.append(phi_structures)
-    print(f"Phi Avg for EPOCH {j}: {phi_avg}")
-    print(f"Big Phi Avg for EPOCH {j}: {big_phi_avg}")
+    # Convert the data to TensorFlow datasets
+    train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(32)
+    val_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(32)
 
-with open("regressionTest.pickle", "wb") as f:
-    pickle.dump([[iterations, phi_avgs, big_phi_avgs, all_sias, all_structs], model, converter, X, y], f)
+    # Create the model
+    model = create_model()
+
+    # Train the model
+    train_losses, val_losses = train_model(model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01)
+    print(train_losses, val_losses)
+
+    with open("phiLossTest.pickle", "wb") as f:
+        pickle.dump([train_losses, val_losses], f)
+
+"""
+Takeaways from initial test:
+- it worked...just not as well as we wanted it to :/
+- how can we customize back-propagation to better the system? mess around with learning rate and scaling of the loss?
+"""

@@ -128,9 +128,12 @@ preprocessed_y = np.array([converter.nodes_to_output(converter.output_to_nodes(s
 # Split the data for training and testing
 X_train, X_test, y_train, y_test = train_test_split(preprocessed_X, preprocessed_y, test_size=0.20)
 
+def capped_relu(x):
+    return tf.keras.activations.relu(x, max_value=1)
+
 model = tf.keras.Sequential([
     tf.keras.layers.Dense(3, activation='relu', name='hidden1'),
-    tf.keras.layers.Dense(converter.totalNodes, activation='relu', name='TPMOutput'),
+    tf.keras.layers.Dense(converter.totalNodes, activation=capped_relu, name='TPMOutput'),
     tf.keras.layers.Dense(converter.numOutputSpaces, activation='relu', name='userOutput')
 ])
 
@@ -195,6 +198,7 @@ phi_avgs = []
 big_phi_avgs = []
 all_sias = []
 all_structs = []
+tpms = []
 
 for j in range(NUM_EPOCHS):
     print(f"EPOCH {j}:")
@@ -226,8 +230,9 @@ for j in range(NUM_EPOCHS):
     big_phi_avgs.append(big_phi_avg)
     all_sias.append(phi_sias)
     all_structs.append(phi_structures)
+    tpms.append(tpm)
     print(f"Phi Avg for EPOCH {j}: {phi_avg}")
     print(f"Big Phi Avg for EPOCH {j}: {big_phi_avg}")
 
 with open("universalTest.pickle", "wb") as f:
-    pickle.dump([[iterations, phi_avgs, big_phi_avgs, all_sias, all_structs], model, converter, X, y], f)
+    pickle.dump([[iterations, phi_avgs, big_phi_avgs, all_sias, all_structs, tpms], model, converter, X, y], f)
