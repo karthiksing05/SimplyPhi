@@ -30,39 +30,45 @@ def capped_relu(x):
 
 tf.keras.utils.get_custom_objects().update({'capped_relu': capped_relu})
 
-with open("phiTrendsTest4.pickle", "rb") as f:
-    datalst = pickle.load(f)
+# with open("regressionTest30.pickle", "rb") as f:
+#     datalst = pickle.load(f)
 
-    sias = datalst[0][4]
-    phiStructures = datalst[0][5]
-    tpms = datalst[0][6]
+#     sias = datalst[0][4]
+#     phiStructures = datalst[0][5]
+#     tpms = datalst[0][6]
 
-    fig, ax = plt.subplots()
+#     fig, ax = plt.subplots()
 
-    # print(sias[0][0].network)
-    # exit()
+#     print([len(sia) for sia in sias])
+#     print(len(sias))
 
-    TOTAL_NODES = 6
-    cm = np.ones((TOTAL_NODES, TOTAL_NODES))
-    labels = tuple([f"Node{i}" for i in range(TOTAL_NODES)])
+#     TOTAL_NODES = 6
+#     states = all_states = list(itertools.product([0, 1], repeat=6))
+#     cm = np.ones((TOTAL_NODES, TOTAL_NODES))
+#     labels = tuple([f"Node{i}" for i in range(TOTAL_NODES)])
 
-    subsystems0 = [pyphi.Subsystem(pyphi.Network(tpms[i], cm=cm, node_labels=labels), siaLst[0].current_state, nodes=siaLst[0].node_indices) for i, siaLst in enumerate(sias)]
-    phiStructures0 = [x[0] for x in phiStructures]
+#     stateNum = 14
+
+#     for stateNum in range(30):
+#         subsystems0 = [pyphi.Subsystem(pyphi.Network(tpms[i], cm=cm, node_labels=labels), states[stateNum], nodes=siaLst[stateNum].node_indices) for i, siaLst in enumerate(sias)]
+#         print(subsystems0)
+#     phiStructures0 = [x[stateNum] for x in phiStructures]
     
-    for i, struct in enumerate(phiStructures0):
-        graphic = visualize.phi_structure.plot_phi_structure(
-            phi_structure=struct, 
-            subsystem=subsystems0[i]
-        )
-        graphic.show()
+#     for i, struct in enumerate(phiStructures0):
+#         graphic = visualize.phi_structure.plot_phi_structure(
+#             phi_structure=struct, 
+#             subsystem=subsystems0[i]
+#         )
+#         graphic.show()
+#         input()
 
-# with open("longerRegressionTest.pickle", "rb") as f:
+# with open("regressionTest30.pickle", "rb") as f:
 #     datalst = pickle.load(f)
 
 #     losses = [x['loss'][0] for x in datalst[0][0]]
 #     lossDerivatives = np.gradient(losses)
 #     valLosses = datalst[0][1]
-#     phis = datalst[0][3]
+#     phis = datalst[0][2]
 #     phiDerivatives = np.gradient(phis)
 
 #     data = pd.DataFrame(columns=["Loss", "Val-Loss", "Phi", "Phi-Gradient"])
@@ -71,14 +77,14 @@ with open("phiTrendsTest4.pickle", "rb") as f:
 #     data["Phi"] = phis
 #     data["Phi-Gradient"] = phiDerivatives
 
-#     data.to_csv("longerRegressionTest.csv")
+#     # data.to_csv("longerRegressionTest.csv")
 
 #     fig, ax = plt.subplots()
 
 #     ax.plot(MinMaxScaler().fit_transform(np.array(losses).reshape(-1, 1)), label='Loss')
-#     # ax.plot(MinMaxScaler().fit_transform(np.array(valLosses).reshape(-1, 1)), label='Val-Loss')
+#     ax.plot(MinMaxScaler().fit_transform(np.array(valLosses).reshape(-1, 1)), label='Val-Loss')
 #     ax.plot(MinMaxScaler().fit_transform(np.array(phis).reshape(-1, 1)), label='Phi')
-#     ax.plot(MinMaxScaler().fit_transform(np.array(phiDerivatives).reshape(-1, 1)).reshape(-1, 1), label='Change in Phi')
+#     # ax.plot(MinMaxScaler().fit_transform(np.array(phiDerivatives).reshape(-1, 1)).reshape(-1, 1), label='Change in Phi')
 
 #     ax.set_title('Epochs for Regression Modeling')
 #     ax.set_xlabel('Epoch')
@@ -88,24 +94,28 @@ with open("phiTrendsTest4.pickle", "rb") as f:
 
 #     plt.show()
 
-# with open("phiPlusLossTest.pickle", "rb") as f:
-#     datalst = pickle.load(f)
+with open("phiPlusLossTest100.pickle", "rb") as f:
+    datalst = pickle.load(f)
 
-#     phis = [tensor.numpy() for tensor in datalst[0]] # REMEMBER THAT PHIS ARE NEGATIVEEEE
-#     losses = [tensor.numpy() for tensor in datalst[2]]
-#     print(phis, losses)
-#     # phiDerivatives = np.gradient(phis)
+    phisTrain = [tensor.numpy() for tensor in datalst[0]]
+    phisVal = [tensor.numpy() for tensor in datalst[1]]
+    regularTrain = [tensor.numpy() for tensor in datalst[2]]
+    regularVal = [tensor.numpy() for tensor in datalst[3]]
+    # print(phisVal, losses)
+    # phiDerivatives = np.gradient(phis)
 
-#     fig, ax = plt.subplots()
+    fig, ax = plt.subplots()
 
-#     ax.plot(MinMaxScaler().fit_transform(np.array(losses).reshape(-1, 1)), label='Loss')
-#     ax.plot(MinMaxScaler().fit_transform(np.array(phis).reshape(-1, 1)), label='Phi')
-#     # ax.plot(MinMaxScaler().fit_transform(np.array(phiDerivatives).reshape(-1, 1)).reshape(-1, 1), label='Change in Phi')
+    ax.plot(phisVal, label='Phi-Based Loss Validation')
+    ax.plot(regularVal, label='Regular Loss Validation')
+    # ax.plot(MinMaxScaler().fit_transform(np.array(losses).reshape(-1, 1)), label='Regular Loss')
+    # ax.plot(MinMaxScaler().fit_transform(np.array(phis).reshape(-1, 1)), label='Phi-Based Loss')
+    # ax.plot(MinMaxScaler().fit_transform(np.array(phiDerivatives).reshape(-1, 1)).reshape(-1, 1), label='Change in Phi')
 
-#     ax.set_title('Epochs for Phi Loss Test')
-#     ax.set_xlabel('Epoch')
-#     ax.set_ylabel('Value')
+    ax.set_title('Epochs for Phi Loss Test')
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel('Value')
 
-#     ax.legend()
+    ax.legend()
 
-#     plt.show()
+    plt.show()

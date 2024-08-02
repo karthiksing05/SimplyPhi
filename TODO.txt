@@ -1,6 +1,9 @@
 BRAIN WAVE BRAIN WAVE BRAIN WAVE: Create a generative loss function that utilizes phi as its metric
 for optimization?? ngl I don't even understand what this means but I'm such a fan XDD
 
+NOPE EVEN BETTER IN ADDITION TO THIS - OPTIMIZE THE BACKPROPAGATION USING THE SIA YUM YUM YUM YOU SO 
+SMART GANGGANG WOOWOOWOW
+
 IN THE VERY DISTANT FUTURE:
 Understand the best practices to reduce a neural network apart from raw experimental
 calculations (that's the main optimization we can make rn)

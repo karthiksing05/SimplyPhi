@@ -130,7 +130,9 @@ class Converter(object):
             numBits += self.outputVars[varIter][1]
             varIter += 1
 
+        # weird noising thingy so probabilities aren't 100%?
         preprocessed = np.where(preprocessed == 0, regularization, preprocessed)
+        preprocessed = np.where(preprocessed == 1, (1 - regularization), preprocessed)
 
         return preprocessed
 
