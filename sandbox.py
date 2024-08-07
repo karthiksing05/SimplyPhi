@@ -62,60 +62,60 @@ tf.keras.utils.get_custom_objects().update({'capped_relu': capped_relu})
 #         graphic.show()
 #         input()
 
-# with open("regressionTest30.pickle", "rb") as f:
-#     datalst = pickle.load(f)
-
-#     losses = [x['loss'][0] for x in datalst[0][0]]
-#     lossDerivatives = np.gradient(losses)
-#     valLosses = datalst[0][1]
-#     phis = datalst[0][2]
-#     phiDerivatives = np.gradient(phis)
-
-#     data = pd.DataFrame(columns=["Loss", "Val-Loss", "Phi", "Phi-Gradient"])
-#     data["Loss"] = losses
-#     data["Val-Loss"] = valLosses
-#     data["Phi"] = phis
-#     data["Phi-Gradient"] = phiDerivatives
-
-#     # data.to_csv("longerRegressionTest.csv")
-
-#     fig, ax = plt.subplots()
-
-#     ax.plot(MinMaxScaler().fit_transform(np.array(losses).reshape(-1, 1)), label='Loss')
-#     ax.plot(MinMaxScaler().fit_transform(np.array(valLosses).reshape(-1, 1)), label='Val-Loss')
-#     ax.plot(MinMaxScaler().fit_transform(np.array(phis).reshape(-1, 1)), label='Phi')
-#     # ax.plot(MinMaxScaler().fit_transform(np.array(phiDerivatives).reshape(-1, 1)).reshape(-1, 1), label='Change in Phi')
-
-#     ax.set_title('Epochs for Regression Modeling')
-#     ax.set_xlabel('Epoch')
-#     ax.set_ylabel('Value')
-
-#     ax.legend()
-
-#     plt.show()
-
-with open("phiPlusLossTest100.pickle", "rb") as f:
+with open("rawRegressionTest.pickle", "rb") as f:
     datalst = pickle.load(f)
 
-    phisTrain = [tensor.numpy() for tensor in datalst[0]]
-    phisVal = [tensor.numpy() for tensor in datalst[1]]
-    regularTrain = [tensor.numpy() for tensor in datalst[2]]
-    regularVal = [tensor.numpy() for tensor in datalst[3]]
-    # print(phisVal, losses)
-    # phiDerivatives = np.gradient(phis)
+    losses = [x['loss'][0] for x in datalst[0][0]]
+    lossDerivatives = np.gradient(losses)
+    valLosses = datalst[0][1]
+    phis = datalst[0][2]
+    phiDerivatives = np.gradient(phis)
+
+    data = pd.DataFrame(columns=["Loss", "Val-Loss", "Phi", "Phi-Gradient"])
+    data["Loss"] = losses
+    data["Val-Loss"] = valLosses
+    data["Phi"] = phis
+    data["Phi-Gradient"] = phiDerivatives
+
+    # data.to_csv("longerRegressionTest.csv")
 
     fig, ax = plt.subplots()
 
-    ax.plot(phisVal, label='Phi-Based Loss Validation')
-    ax.plot(regularVal, label='Regular Loss Validation')
-    # ax.plot(MinMaxScaler().fit_transform(np.array(losses).reshape(-1, 1)), label='Regular Loss')
-    # ax.plot(MinMaxScaler().fit_transform(np.array(phis).reshape(-1, 1)), label='Phi-Based Loss')
-    # ax.plot(MinMaxScaler().fit_transform(np.array(phiDerivatives).reshape(-1, 1)).reshape(-1, 1), label='Change in Phi')
+    ax.plot(MinMaxScaler().fit_transform(np.array(losses).reshape(-1, 1)), label='Loss')
+    ax.plot(MinMaxScaler().fit_transform(np.array(valLosses).reshape(-1, 1)), label='Val-Loss')
+    ax.plot(MinMaxScaler().fit_transform(np.array(phis).reshape(-1, 1)), label='Phi')
+    ax.plot(MinMaxScaler().fit_transform(np.array(phiDerivatives).reshape(-1, 1)).reshape(-1, 1), label='Change in Phi')
 
-    ax.set_title('Epochs for Phi Loss Test')
+    ax.set_title('Epochs for Regression Modeling')
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Value')
 
     ax.legend()
 
     plt.show()
+
+# with open("rawRegressionTest.pickle", "rb") as f:
+#     datalst = pickle.load(f)
+
+#     phisTrain = [tensor.numpy() for tensor in datalst[0]]
+#     phisVal = [tensor.numpy() for tensor in datalst[1]]
+#     regularTrain = [tensor.numpy() for tensor in datalst[2]]
+#     regularVal = [tensor.numpy() for tensor in datalst[3]]
+#     # print(phisVal, losses)
+#     # phiDerivatives = np.gradient(phis)
+
+#     fig, ax = plt.subplots()
+
+#     ax.plot(phisVal, label='Phi-Based Loss Validation')
+#     ax.plot(regularVal, label='Regular Loss Validation')
+#     # ax.plot(MinMaxScaler().fit_transform(np.array(losses).reshape(-1, 1)), label='Regular Loss')
+#     # ax.plot(MinMaxScaler().fit_transform(np.array(phis).reshape(-1, 1)), label='Phi-Based Loss')
+#     # ax.plot(MinMaxScaler().fit_transform(np.array(phiDerivatives).reshape(-1, 1)).reshape(-1, 1), label='Change in Phi')
+
+#     ax.set_title('Epochs for Phi Loss Test')
+#     ax.set_xlabel('Epoch')
+#     ax.set_ylabel('Value')
+
+#     ax.legend()
+
+#     plt.show()
