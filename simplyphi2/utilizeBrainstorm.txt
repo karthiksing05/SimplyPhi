@@ -1,0 +1,14 @@
+I GET THE BRAIN WAVE I HAD! Two main parts:
+
+Part / possibility 1 (qualification): use SIAs to determine relative weighting of different parts 
+of the neural network! there are a couple different ways to do this:
+- SIA for the major complex and then weight that part extra (idk how tf this part works but we can 
+  figure it out with a minimal working example)
+- might be able to breakdown into multiple phis for each model and figure it out but randomization
+  of the weights beforehand is definitely necessary for this
+
+Part / possibility 2 (quantification): use the Phi as the loss function, tweaking the behavior
+of backpropagation to modify weights in a way that improves phi (need experimentation for this part!)
+- from phiLossCompTest.py -> phi as a loss function, kinda fire! it seems to work and it seems to
+  work very well if a weighted average composed with loss especially with high ratios (0.8)
+- other ways to use relative phis TBD

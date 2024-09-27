@@ -1,0 +1,5 @@
+Immediate ideas:
+- represent stuff as equations and find a way to do math with matrices that
+  benefits the common good optimially?
+
+- need to analyze time complexity and project time complexity (pretty sure it's exponential rn which sucks)
