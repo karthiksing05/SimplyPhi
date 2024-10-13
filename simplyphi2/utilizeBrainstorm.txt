@@ -14,4 +14,6 @@ of backpropagation to modify weights in a way that improves phi (need experiment
 - other ways to use relative phis TBD
 
 OTHER NOTES:
-- adaptable split feels like the meta --> find the connections and then deepen them in short term
+- need to test more with adaptable part
+- raw split with SIA still shows signs of realizations of overfitting! so very very cool stuff!
+- lowk, raw split working a lot better but WHYYY

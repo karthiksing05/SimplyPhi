@@ -269,7 +269,8 @@ def train_model(model, train_dataset, val_dataset, epochs, learning_rate, doSpli
                 logits = model(x_batch_train, training=True)
                 loss_value = actual_loss(y_batch_train, logits)
                 loss_value *= (1 - split)
-                loss_value += (split * phi_loss_func(model)(y_batch_train, logits))
+                if split > 0:
+                    loss_value += (split * phi_loss_func(model)(y_batch_train, logits))
 
             grads = tape.gradient(loss_value, model.trainable_weights)
             # print(grads, type(grads)) # TODO HERE FIGURE OUT HOW TO REPLACE THESE GRADIENTS WITH SIA ANALYSES
@@ -316,5 +317,5 @@ if __name__ == "__main__":
     train_losses, val_losses = train_model(model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=False)
     # print(train_losses, val_losses)
 
-    with open("phiQualitativeBP.pickle", "wb") as f:
-        pickle.dump([phi_train_losses, phi_val_losses, train_losses, val_losses, phi_model], f)
+    with open("phiQualitativeBPReg.pickle", "wb") as f:
+        pickle.dump([phi_train_losses, phi_val_losses, train_losses, val_losses, model], f)

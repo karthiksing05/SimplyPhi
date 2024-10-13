@@ -30,25 +30,31 @@ def capped_relu(x):
 
 tf.keras.utils.get_custom_objects().update({'capped_relu': capped_relu})
 
-with open("phiPlusLossTest_adaptableSplit.pickle", "rb") as f:
+with open("phiQualitativeBP.pickle", "rb") as f:
     datalst = pickle.load(f)
 
     phi_train = datalst[0]
     phi_val = datalst[1]
 
-    reg_train = datalst[2]
-    reg_val = datalst[3]
+with open("phiQualitativeBPReg.pickle", "rb") as f:
 
-    index = range(len(phi_train))
+    datalst = pickle.load(f)
 
-    plt.plot(index, phi_val, label='Phi Values', marker='o')
-    plt.plot(index, reg_val, label='Reg Values', marker='s')
+    reg_train = datalst[0]
+    reg_val = datalst[1]
 
-    plt.title("Phi Values and Regular Values")
-    plt.xlabel("Index")
-    plt.ylabel("Values")
+print(phi_train, reg_train)
 
-    plt.legend()
+index = range(len(phi_train))
 
-    plt.grid(True)
-    plt.show()
+plt.plot(index, phi_val, label='Phi Values', marker='o')
+plt.plot(index, reg_val, label='Reg Values', marker='s')
+
+plt.title("Phi Values and Regular Values")
+plt.xlabel("Index")
+plt.ylabel("Values")
+
+plt.legend()
+
+plt.grid(True)
+plt.show()
