@@ -2,8 +2,6 @@
 Expanding universal test to apply phi-values to neural network optimization routine!
 
 Main difference is that this combines phi and accuracy in a 1:1 ratio!
-
-TODO IS THERE A WAY TO COMBINE SELECTIVITY WITH PHI HERE?!?!
 """
 
 import numpy as np
@@ -223,7 +221,7 @@ def create_model():
     return model
 
 # Training loop using the pseudo-constant loss for training and actual loss for validation
-def train_model(model, train_dataset, val_dataset, epochs, learning_rate, split):
+def train_model(model, train_dataset, val_dataset, epochs, learning_rate, doSplit):
 
     train_losses = []
     val_losses = []
@@ -238,14 +236,22 @@ def train_model(model, train_dataset, val_dataset, epochs, learning_rate, split)
     # Training loop
     for epoch in range(epochs):
         print(f"Epoch {epoch + 1}/{epochs}")
-        
+
+        if doSplit:
+            split = (epoch + 1) / epochs - 1e-6
+            # TODO FIGURE OUT WEIGHTED SUM FOR THIS UGHHH
+            # PERCENTAGE ?!?
+        else:
+            split = 0
+
         # Training step
         for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
             with tf.GradientTape() as tape:
                 logits = model(x_batch_train, training=True)
                 loss_value = actual_loss(y_batch_train, logits)
                 loss_value *= (1 - split)
-                loss_value += (split * phi_loss_func(model)(y_batch_train, logits))
+                if split > 0:
+                    loss_value += (split * phi_loss_func(model)(y_batch_train, logits))
 
             grads = tape.gradient(loss_value, model.trainable_weights)
             
@@ -274,48 +280,29 @@ def train_model(model, train_dataset, val_dataset, epochs, learning_rate, split)
 
 if __name__ == "__main__":
 
-# Convert the data to TensorFlow datasets
+    # Convert the data to TensorFlow datasets
     train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(32)
     val_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(32)
 
-    splits = list(np.arange(0.0, 1.0, 0.1))
+    # Create the model
+    phi_model = create_model()
 
-    for split in splits:
-        print(f"CALCULATING FOR SPLIT OF {split}")
+    # Train the model
+    phi_train_losses, phi_val_losses = train_model(phi_model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=True)
+    # print(phi_train_losses, phi_val_losses)
 
-        # Create the model
-        phi_model = create_model()
+    # Create the model (NO PHI CALCS)
+    model = create_model()
 
-        # Train the model
-        phi_train_losses, phi_val_losses = train_model(phi_model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, split=split)
-        # print(phi_train_losses, phi_val_losses)
+    # Train the model (NO PHI CALCS)
+    train_losses, val_losses = train_model(model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=False)
+    # print(train_losses, val_losses)
 
-        with open(f"phiPlusLossTest{str(split).replace('0.', '')}.pickle", "wb") as f:
-            pickle.dump([phi_train_losses, phi_val_losses], f)
-
-"""
-TODO when done, graph all of them and see where it optimizes!
-
-Graphing Snippet!
-
-data = []
-
-for i in range(1, 10):
-    with open(f"phiPlusLossTest{i}.pickle", "rb") as f:
-        data.append(pickle.load(f)[1])
-
-# Plotting the list of lists
-plt.figure(figsize=(10,6))
-
-for idx, values in enumerate(data):
-    plt.plot(values, label=f'Split Size of {idx+1}')
-
-plt.xlabel('Index')
-plt.ylabel('Values')
-plt.title('Plot of Lists of 10 Values Each')
-plt.legend()
-plt.grid(True)
-plt.show()
+    with open("phiPlusLossTest_adaptableSplit.pickle", "wb") as f:
+        pickle.dump([phi_train_losses, phi_val_losses, train_losses, val_losses], f)
 
 """
-
+Takeaways from initial test:
+- it worked...just not as well as we wanted it to :/
+- how can we customize back-propagation to better the system? mess around with learning rate and scaling of the loss?
+"""

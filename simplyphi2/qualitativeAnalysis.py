@@ -1,3 +1,4 @@
+import pyphi.data_structures
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,15 +16,13 @@ collections.Sequence = collections.abc.Sequence
 
 import pyphi
 from pyphi import visualize
-pyphi.config.PROGRESS_BARS = True # may need to comment this one out for bigger networks, but this is fine for now
+pyphi.config.PROGRESS_BARS = False # may need to comment this one out for bigger networks, but this is fine for now
 pyphi.config.VALIDATE_SUBSYSTEM_STATES = False
 
 import itertools
 import pickle
 
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import MinMaxScaler
+from scipy.stats import skew, kurtosis, entropy
 
 import cv2
 
@@ -51,8 +50,7 @@ tf.keras.utils.get_custom_objects().update({'capped_relu': capped_relu})
 
 datalst = []
 
-with open("activationRegressionTest30.pickle", "rb") as f:
-
+with open("phiTrendsTest4PhiStructs.pickle", "rb") as f:
     datalst = pickle.load(f)
 
 sias = datalst[0][4]
@@ -68,34 +66,41 @@ all_states = list(itertools.product([0, 1], repeat=6))
 cm = np.ones((TOTAL_NODES, TOTAL_NODES))
 labels = tuple([f"Node{i}" for i in range(TOTAL_NODES)])
 
-def compileSIAs(epoch):
+def siaDeepDive(epoch, verbose=False):
 
-    """
-    phiSums is a matrix that stores the connections between each input and output node
+    sias = []
 
-    phiSums[Node1][Node5] = 4.5 signifies that the connection betweeen Node1 and Node5 
-    has a phi-strength of 4.5
+    tpm = tpms[epoch]
 
-    calculating separately for causes and effects! BUT IMPORTANT NOTE: cause and effect RIAs
-    are the same transition explanations over different time intervals so we can just sum
-    weighted with selectivity and assume stuff
-    """
+    substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
+    subsets = [itertools.combinations(range(TOTAL_NODES), r) for r in range(1, TOTAL_NODES + 1)]
+    subsets = [list(subset) for r in subsets for subset in r]
+
+    # Calculate and print the phi value for each subsystem
+    for i in range(NUM_STATES):
+        sias.append([])
+        for subset in subsets:
+            subsystem = pyphi.Subsystem(substrate, all_states[i], subset)
+            sia = pyphi.new_big_phi.sia(subsystem)
+            sias[i].append(sia)
+            if verbose:
+                print(f"Subsystem: {subsystem}, Φ: {sia.phi}")
+
+    #### HEATMAP CALCULATIONS!!!
+    # Can apply a logarithmic scale!
+
     phiSums = [[0 for _ in range(TOTAL_NODES)] for _ in range(TOTAL_NODES)]
     causePhiSums = [[0 for _ in range(TOTAL_NODES)] for _ in range(TOTAL_NODES)]
     effectPhiSums = [[0 for _ in range(TOTAL_NODES)] for _ in range(TOTAL_NODES)]
 
-    epochSias = sias[epoch]
+    flattenedSias = list(itertools.chain.from_iterable(sias))
 
-    """
-    CAUSE STUFF:
-    - grab the mechanism and purview and use that to adjust edges!
-    - let's average both phis out across the cause and effect, weighted sum via selectivity!
-    - (phiCause * selectivityCause + phiEffect * selectivityEffect) / (selectivityCause + selectivityEffect)
-    """
+    for i in range(len(flattenedSias)):
+        causeRIA = flattenedSias[i].cause
+        effectRIA = flattenedSias[i].effect
 
-    for i in range(len(all_states)):
-        causeRIA = epochSias[i].cause
-        effectRIA = epochSias[i].effect
+        if not causeRIA or not effectRIA:
+            continue
 
         for m in list(causeRIA.mechanism):
             for p in list(causeRIA.purview):
@@ -108,12 +113,16 @@ def compileSIAs(epoch):
         for m in list(effectRIA.mechanism):
             for p in list(effectRIA.purview):
                 phiSums[m][p] += (causeRIA.phi * causeRIA.selectivity + effectRIA.phi * effectRIA.selectivity)
-    
-    return phiSums
 
-def heatmapVideo(numEpochs, output_file='epochInfoDist.mp4'):
+    # from pprint import pprint
+    # pprint(phiSums)
+    # print("CAUSE")
+    # [print(x) for x in causePhiSums]
+    # print("EFFECT")
+    # [print(x) for x in effectPhiSums]
+    return np.array(phiSums)
 
-    data_list = [compileSIAs(epoch) for epoch in range(numEpochs)]
+def heatmapVideo(data_list, output_file='epochInfoDist.mp4'):
 
     # Video file properties
     frame_rate = 4  # 0.25 seconds per frame (4 frames per second)
@@ -161,5 +170,70 @@ def heatmapVideo(numEpochs, output_file='epochInfoDist.mp4'):
 
     print(f'Video saved as {output_file}')
 
-# OMG CAN WE CREATE A VALUE OF THE RELATIVE SPREAD OF THE DATA AS OUR SIA ANALYSIS TOO OMG OMG OMG
-# still need to figure out how to apply but should be chillin
+def calculate_variance(array):
+    """Calculates the variance of the 2D array."""
+    return np.var(array)
+
+def calculate_skewness(array):
+    """Calculates the skewness of the 2D array."""
+    return skew(array.flatten())
+
+def calculate_kurtosis(array):
+    """Calculates the kurtosis of the 2D array."""
+    return kurtosis(array.flatten())
+
+def calculate_entropy(array):
+    """Calculates the entropy of the 2D array."""
+    # Normalize the array values to get a probability distribution
+    flattened_array = array.flatten()
+    value_counts = np.bincount(flattened_array.astype(int))  # Count occurrences of each value
+    probabilities = value_counts / len(flattened_array)  # Convert to probabilities
+    return entropy(probabilities)
+
+def calculate_gini_coef(array):
+    """Calculates the Gini coefficient for the 2D array."""
+    # Flatten the array and sort it
+    flattened_array = array.flatten()
+    sorted_array = np.sort(flattened_array)
+    n = len(sorted_array)
+    cumulative_sum = np.cumsum(sorted_array)
+    return (2 * np.sum(cumulative_sum) / (n * np.sum(sorted_array))) - (n + 1) / n
+
+def calculate_l2_norm(array):
+    """Calculates the L2 norm of the 2D array."""
+    return np.linalg.norm(array)
+
+def scaleHeatmap(heatmap):
+    return np.log2(heatmap + 1)
+
+def extrapolateHeatmap(heatmap):
+    return calculate_variance(heatmap)
+
+if __name__ == "__main__":
+
+    # heatmaps = [siaDeepDive(i) for i in range(NUM_EPOCHS)]
+
+    # with open("actReg30_siaEpochs2.pickle", "wb") as f:
+    #     pickle.dump(heatmaps, f)
+
+    with open("actReg30_siaEpochs2.pickle", "rb") as f:
+        heatmaps = pickle.load(f)
+
+    with open("phiTrendsTest4PhiStructs.pickle", "rb") as f:
+        regData = pickle.load(f)
+
+    heatmapVideo(heatmaps)
+
+    phis = regData[0][3]
+    extpols = [extrapolateHeatmap(heatmap) for heatmap in heatmaps]
+
+    # Plotting the numbers
+    plt.plot(phis, extpols, marker='o')
+
+    # Adding titles and labels
+    plt.title('Extrapolation of Heatmap Values')
+    plt.xlabel('Phi')
+    plt.ylabel('Variance')
+
+    # Display the plot
+    plt.show()

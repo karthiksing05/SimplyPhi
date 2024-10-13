@@ -38,6 +38,7 @@ from helper.visualize import visualize_graph
 
 ### NOTE CHATGPT DATA WOOO
 import numpy as np
+from scipy.stats import skew, kurtosis, entropy
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
@@ -135,6 +136,14 @@ def actual_loss(y_true, y_pred):
     # print(loss)
     return loss
 
+def calculate_skewness(array):
+    """Calculates the skewness of the 2D array."""
+    return skew(array.flatten())
+
+def calculate_kurtosis(array):
+    """Calculates the kurtosis of the 2D array."""
+    return kurtosis(array.flatten())
+
 def phi_loss_func(model):
     """
     THIS IS THE EVALUATION BUT AS A LOSS FUNCTION!!! Need to write it as a function
@@ -167,25 +176,48 @@ def phi_loss_func(model):
 
         substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
 
-        big_phi_avg = 0
+        sias = []
 
-        for state in all_states:
-            try:
-                fc_sia = pyphi.new_big_phi.maximal_complex(substrate, state)
-            except Exception as e:
-                print("ERROR THROWN: " + e)
-            if type(fc_sia) != pyphi.new_big_phi.NullPhiStructure:
-                fc_structure = pyphi.new_big_phi.phi_structure(pyphi.Subsystem(substrate, state, nodes=fc_sia.node_indices))
-                big_phi_avg += fc_structure.big_phi
+        substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
+        subsets = [itertools.combinations(range(converter.totalNodes), r) for r in range(1, converter.totalNodes + 1)]
+        subsets = [list(subset) for r in subsets for subset in r]
 
-        big_phi_avg /= len(all_states)
+        # Calculate and print the phi value for each subsystem
+        for i in range(len(all_states)):
+            sias.append([])
+            for subset in subsets:
+                subsystem = pyphi.Subsystem(substrate, all_states[i], subset)
+                sia = pyphi.new_big_phi.sia(subsystem)
+                sias[i].append(sia)
+
+        #### HEATMAP CALCULATIONS!!!
+        # Can apply a logarithmic scale!
+
+        phiSums = [[0 for _ in range(converter.totalNodes)] for _ in range(converter.totalNodes)]
+
+        flattenedSias = list(itertools.chain.from_iterable(sias))
+
+        for i in range(len(flattenedSias)):
+            causeRIA = flattenedSias[i].cause
+            effectRIA = flattenedSias[i].effect
+
+            if not causeRIA or not effectRIA:
+                continue
+
+            for m in list(effectRIA.mechanism):
+                for p in list(effectRIA.purview):
+                    phiSums[m][p] += (causeRIA.phi * causeRIA.selectivity + effectRIA.phi * effectRIA.selectivity)
+
+        phiSums = np.array(phiSums)
+
+        heatmapEvaluation = calculate_kurtosis(phiSums) + calculate_skewness(phiSums)
 
         accuracy_dependency = actual_loss(y_pred, tf.zeros_like(y_pred)) * 1e-6
-        big_phi_avg += accuracy_dependency
+        heatmapEvaluation += accuracy_dependency
 
-        big_phi_avg *= -1 # NEGATING THE LOSS TO MAKE IT WORK WITH THE MODEL
-        print("BIG PHI AVG: ", big_phi_avg)
-        return tf.constant(big_phi_avg, dtype=tf.float32)
+        heatmapEvaluation *= -1 # NEGATING THE LOSS TO MAKE IT WORK WITH THE MODEL
+        print("HEATMAP EVALUATION: ", heatmapEvaluation)
+        return tf.constant(heatmapEvaluation, dtype=tf.float32)
 
     return loss
 
@@ -205,7 +237,10 @@ def create_model():
     return model
 
 # Training loop using the pseudo-constant loss for training and actual loss for validation
-def train_model(model, train_dataset, val_dataset, epochs, learning_rate, split):
+def train_model(model, train_dataset, val_dataset, epochs, learning_rate, doSplit):
+    """
+    Note that split is the fractional amount of phi in the weighted average!
+    """
 
     train_losses = []
     val_losses = []
@@ -220,6 +255,12 @@ def train_model(model, train_dataset, val_dataset, epochs, learning_rate, split)
     # Training loop
     for epoch in range(epochs):
         print(f"Epoch {epoch + 1}/{epochs}")
+
+        if doSplit:
+            split = (epoch + 1) / epochs - 1e-6
+        else:
+            split = 0.0
+        # NOTE THIS IS HELLA IMPORTANT!! PROGRAMMED SPLIT TO DECREASE AS TIME WENT ON!!!
         
         # Training step
         for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
@@ -261,10 +302,18 @@ if __name__ == "__main__":
     train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(32)
     val_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(32)
 
-    split = 0.5
-
     # Create the model
     phi_model = create_model()
 
     # Train the model
-    phi_train_losses, phi_val_losses = train_model(phi_model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, split=split)
+    phi_train_losses, phi_val_losses = train_model(phi_model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=True)
+
+    # Create the model (NO PHI CALCS)
+    model = create_model()
+
+    # Train the model (NO PHI CALCS)
+    train_losses, val_losses = train_model(model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=False)
+    # print(train_losses, val_losses)
+
+    with open("phiQualitativeBPAdapt.pickle", "wb") as f:
+        pickle.dump([phi_train_losses, phi_val_losses, train_losses, val_losses, phi_model], f)

@@ -12,3 +12,6 @@ of backpropagation to modify weights in a way that improves phi (need experiment
 - from phiLossCompTest.py -> phi as a loss function, kinda fire! it seems to work and it seems to
   work very well if a weighted average composed with loss especially with high ratios (0.8)
 - other ways to use relative phis TBD
+
+OTHER NOTES:
+- adaptable split feels like the meta --> find the connections and then deepen them in short term
