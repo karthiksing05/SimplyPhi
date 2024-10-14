@@ -1,0 +1,4 @@
+The general plan:
+- run multiple tests to confirm the phi magnitudes work!
+- document the directional analysis of phi-magnitudes
+- write paper on why intuitively, it works!!!

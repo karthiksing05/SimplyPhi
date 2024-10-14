@@ -1,8 +1,0 @@
-- similar results to the other stuff!
-- dude the phi as magnitude and loss as direction is working out SWIMMINGLY
-- need to confirm weighted average stuff for next steps but overall, looking really really good!
-
-NEED TO WRITE A REPORT:
-- test and run the weighted average
-- showcase the directional change with SIA values across MULTIPLE DATASETS
-- write a report that properly analyzes the code to confirm the directional change!
