@@ -1,0 +1,25 @@
+I think the biggest thing to glean from this is the whole overfitting philosophy
+- phi can stabilize even as the model gets better so using that to determine when the training loop
+  should stop is probably pretty aspirable!
+
+THINKING THAT LOG-H IS THE MOVEEEE WOOOOO - on second thought it may be the value that the
+heatmap brings which is REALLY interesting - needs more thought for sure so running the tests
+
+noHWeird shows how the phi gets bad with overfitting which is really important! I want to start
+saving phi-values, I think noticing those trends will also be really important.
+
+Proof pickles:
+- log-H0
+- log-H1
+- log-H2
+- linear-H0
+- linear-P2
+
+Disproof pickles:
+- no-H
+- no-P
+- linear-P0
+- linear-P1
+- linear-P3
+- linear-P4
+- log-P

@@ -30,7 +30,9 @@ def capped_relu(x):
 
 tf.keras.utils.get_custom_objects().update({'capped_relu': capped_relu})
 
-with open("siaTest0.pickle", "rb") as f:
+
+# LINEARADAPTP GOOD TEST
+with open("iitOverfittingNoAdaptHWeird.pickle", "rb") as f:
     datalst = pickle.load(f)
 
     phi_train = datalst[0]
@@ -40,8 +42,16 @@ with open("siaTest0.pickle", "rb") as f:
 
 index = range(len(phi_train))
 
-plt.plot(index, phi_val, label='Phi Values', marker='o')
-plt.plot(index, reg_val, label='Reg Values', marker='s')
+## UNCOMMENT THESE FOR TRAINING VERIFICATIONS!
+phi_train_losses_scaled = (tf.convert_to_tensor(phi_train) - tf.reduce_min(phi_train)) / (tf.reduce_max(phi_train) - tf.reduce_min(phi_train))
+reg_train_losses_scaled = (tf.convert_to_tensor(reg_train) - tf.reduce_min(reg_train)) / (tf.reduce_max(reg_train) - tf.reduce_min(reg_train))
+
+print(phi_train)
+# exit()
+# print(phi_train_losses_scaled, reg_train_losses_scaled)
+
+plt.plot(index, phi_train, label='Phi Values', marker='o')
+# plt.plot(index, reg_val, label='Reg Values', marker='s')
 
 plt.title("Phi Values and Regular Values")
 plt.xlabel("Index")
