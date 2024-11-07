@@ -1,7 +1,7 @@
-for i in range(5):
+for k in range(5):
     """
     Linear adapt test using the custom value from Heatmaps!
-    Linear means that the split relationship will be adjusted proportionally.
+    Linear means that the split relationship will be adjusted proportionally over time.
     """
 
     import numpy as np
@@ -152,74 +152,71 @@ for i in range(5):
         within a function because of the way that Keras auto-accepts loss functions
         """
 
+        tpm = []
+
+        print(f"Completing {len(all_states)} iters to calculate TPM:")
+        interval = 0.1
+        percent_to_complete = interval
+
+        for i, state in enumerate(all_states):
+            npState = np.array([converter.nodes_to_input(state)]).reshape(1, -1)
+            activations = converter.get_TPM_activations(model, npState)
+            # activations = converter.output_to_nodes(model.predict(npState, verbose=0), regularization=0.01)
+            tpm.append(activations)
+            if i / len(all_states) >= percent_to_complete:
+                print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+                percent_to_complete += interval
+
+        print(f"Completed {i + 1} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+
+        tpm = np.array(tpm)
+
+        labels = tuple([f"Node_{i}" for i in range(converter.totalNodes)])
+
+        substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
+
+        sias = []
+
+        substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
+        subsets = [itertools.combinations(range(converter.totalNodes), r) for r in range(1, converter.totalNodes + 1)]
+        subsets = [list(subset) for r in subsets for subset in r]
+
+        # Calculate and print the phi value for each subsystem
+        for i in range(len(all_states)):
+            sias.append([])
+            for subset in subsets:
+                subsystem = pyphi.Subsystem(substrate, all_states[i], subset)
+                sia = pyphi.new_big_phi.sia(subsystem)
+                sias[i].append(sia)
+
+        #### HEATMAP CALCULATIONS!!!
+        # Can apply a logarithmic scale!
+
+        phiSums = [[0 for _ in range(converter.totalNodes)] for _ in range(converter.totalNodes)]
+
+        flattenedSias = list(itertools.chain.from_iterable(sias))
+
+        for i in range(len(flattenedSias)):
+            causeRIA = flattenedSias[i].cause
+            effectRIA = flattenedSias[i].effect
+
+            if not causeRIA or not effectRIA:
+                continue
+
+            for m in list(effectRIA.mechanism):
+                for p in list(effectRIA.purview):
+                    phiSums[m][p] += (causeRIA.phi * causeRIA.selectivity + effectRIA.phi * effectRIA.selectivity)
+
+        phiSums = np.array(phiSums)
+
+        heatmapEvaluation = calculate_kurtosis(phiSums) + calculate_skewness(phiSums)
+
         @tf.function
         def loss(y_true, y_pred):
 
-            tpm = []
-
-            print(f"Completing {len(all_states)} iters to calculate TPM:")
-            interval = 0.1
-            percent_to_complete = interval
-
-            for i, state in enumerate(all_states):
-                npState = np.array([converter.nodes_to_input(state)]).reshape(1, -1)
-                activations = converter.get_TPM_activations(model, npState)
-                # activations = converter.output_to_nodes(model.predict(npState, verbose=0), regularization=0.01)
-                tpm.append(activations)
-                if i / len(all_states) >= percent_to_complete:
-                    print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
-                    percent_to_complete += interval
-
-            print(f"Completed {i + 1} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
-
-            tpm = np.array(tpm)
-
-            labels = tuple([f"Node_{i}" for i in range(converter.totalNodes)])
-
-            substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
-
-            sias = []
-
-            substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
-            subsets = [itertools.combinations(range(converter.totalNodes), r) for r in range(1, converter.totalNodes + 1)]
-            subsets = [list(subset) for r in subsets for subset in r]
-
-            # Calculate and print the phi value for each subsystem
-            for i in range(len(all_states)):
-                sias.append([])
-                for subset in subsets:
-                    subsystem = pyphi.Subsystem(substrate, all_states[i], subset)
-                    sia = pyphi.new_big_phi.sia(subsystem)
-                    sias[i].append(sia)
-
-            #### HEATMAP CALCULATIONS!!!
-            # Can apply a logarithmic scale!
-
-            phiSums = [[0 for _ in range(converter.totalNodes)] for _ in range(converter.totalNodes)]
-
-            flattenedSias = list(itertools.chain.from_iterable(sias))
-
-            for i in range(len(flattenedSias)):
-                causeRIA = flattenedSias[i].cause
-                effectRIA = flattenedSias[i].effect
-
-                if not causeRIA or not effectRIA:
-                    continue
-
-                for m in list(effectRIA.mechanism):
-                    for p in list(effectRIA.purview):
-                        phiSums[m][p] += (causeRIA.phi * causeRIA.selectivity + effectRIA.phi * effectRIA.selectivity)
-
-            phiSums = np.array(phiSums)
-
-            heatmapEvaluation = calculate_kurtosis(phiSums) + calculate_skewness(phiSums)
-
             accuracy_dependency = actual_loss(y_pred, tf.zeros_like(y_pred)) * 1e-6
-            heatmapEvaluation += accuracy_dependency
-
-            heatmapEvaluation *= -1 # NEGATING THE LOSS TO MAKE IT WORK WITH THE MODEL
             print("HEATMAP EVALUATION: ", heatmapEvaluation)
-            return tf.constant(heatmapEvaluation, dtype=tf.float32)
+            return tf.constant((heatmapEvaluation + accuracy_dependency) * -1, dtype=tf.float32)
 
         return loss
 
@@ -244,8 +241,12 @@ for i in range(5):
         Note that split is the fractional amount of phi in the weighted average!
         """
 
+        def zero_loss_func(y_true, y_pred):
+            return 0.0
+
         train_losses = []
         val_losses = []
+        phis = []
 
         # Initialize the optimizer
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -259,19 +260,24 @@ for i in range(5):
             print(f"Epoch {epoch + 1}/{epochs}")
 
             if doSplit:
-                split = 0.8 + 0.2 * (epoch + 1) / epochs - 1e-6 # TODO LOGARITHM TEST MULITPLE SPLIT DIFFERENCES
+                split = 0.8 + 0.2 * (epoch + 1) / epochs - 1e-6
             else:
                 split = 0.0
             # NOTE THIS IS HELLA IMPORTANT!! PROGRAMMED SPLIT TO DECREASE AS TIME WENT ON!!!
             
+            if split != 0.0:
+                phi_loss = phi_loss_func(model)
+            else:
+                phi_loss = zero_loss_func
+
             # Training step
             for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
                 with tf.GradientTape() as tape:
                     logits = model(x_batch_train, training=True)
                     loss_value = actual_loss(y_batch_train, logits)
                     loss_value *= (1 - split)
-                    if split != 0.0:
-                        loss_value += (split * phi_loss_func(model)(y_batch_train, logits))
+                    loss_value += (split * phi_loss(y_batch_train, logits))
+                    phi = phi_loss(y_batch_train, logits)
 
                 grads = tape.gradient(loss_value, model.trainable_weights)
                 # print(grads, type(grads)) # TODO HERE FIGURE OUT HOW TO REPLACE THESE GRADIENTS WITH SIA ANALYSES
@@ -292,31 +298,30 @@ for i in range(5):
 
             train_losses.append(train_loss)
             val_losses.append(val_loss)
+            phis.append(phi)
             
             # Reset metrics at the end of each epoch
             train_loss_metric.reset_state()
             val_loss_metric.reset_state()
 
-        return train_losses, val_losses
+        return train_losses, val_losses, phis
 
-    if __name__ == "__main__":
+    # Convert the data to TensorFlow datasets
+    train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(32)
+    val_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(32)
 
-        # Convert the data to TensorFlow datasets
-        train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(32)
-        val_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(32)
+    # Create the model
+    phi_model = create_model()
 
-        # Create the model
-        phi_model = create_model()
+    # Train the model
+    phi_train_losses, phi_val_losses, phis = train_model(phi_model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=True)
 
-        # Train the model
-        phi_train_losses, phi_val_losses = train_model(phi_model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=True)
+    # Create the model (NO PHI CALCS)
+    model = create_model()
 
-        # Create the model (NO PHI CALCS)
-        model = create_model()
+    # Train the model (NO PHI CALCS)
+    train_losses, val_losses, _ = train_model(model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=False)
+    # print(train_losses, val_losses)
 
-        # Train the model (NO PHI CALCS)
-        train_losses, val_losses = train_model(model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=False)
-        # print(train_losses, val_losses)
-
-        with open(f"iitOverfittingLinearAdaptH{i}.pickle", "wb") as f:
-            pickle.dump([phi_train_losses, phi_val_losses, train_losses, val_losses, phi_model, model, X, y], f)
+    with open(f"iitOverfittingLinearAdaptH{k}.pickle", "wb") as f:
+        pickle.dump([phi_train_losses, phi_val_losses, train_losses, val_losses, phis, phi_model, model, X, y], f)

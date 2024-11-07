@@ -32,7 +32,7 @@ tf.keras.utils.get_custom_objects().update({'capped_relu': capped_relu})
 
 
 # LINEARADAPTP GOOD TEST
-with open("iitOverfittingNoAdaptHWeird.pickle", "rb") as f:
+with open("iitOverfittingLinearAdaptH0.pickle", "rb") as f:
     datalst = pickle.load(f)
 
     phi_train = datalst[0]
@@ -48,10 +48,12 @@ reg_train_losses_scaled = (tf.convert_to_tensor(reg_train) - tf.reduce_min(reg_t
 
 print(phi_train)
 # exit()
-# print(phi_train_losses_scaled, reg_train_losses_scaled)
+print(phi_train_losses_scaled, reg_train_losses_scaled)
 
-plt.plot(index, phi_train, label='Phi Values', marker='o')
-# plt.plot(index, reg_val, label='Reg Values', marker='s')
+# print(phi_val, reg_val)
+
+plt.plot(index, phi_val, label='Phi Values', marker='o')
+plt.plot(index, reg_val, label='Reg Values', marker='s')
 
 plt.title("Phi Values and Regular Values")
 plt.xlabel("Index")

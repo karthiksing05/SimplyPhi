@@ -8,6 +8,11 @@ heatmap brings which is REALLY interesting - needs more thought for sure so runn
 noHWeird shows how the phi gets bad with overfitting which is really important! I want to start
 saving phi-values, I think noticing those trends will also be really important.
 
+OOPSIES FIGURED OUT SILLY BUSINESS SO FIXED THAT LMAO - starting a rerun and hopefully less
+epochs gets us more data faster!
+
+Need to make placebo script after running all the new tests!
+
 Proof pickles:
 - log-H0
 - log-H1
@@ -16,7 +21,7 @@ Proof pickles:
 - linear-P2
 
 Disproof pickles:
-- no-H
+- no-HWeird
 - no-P
 - linear-P0
 - linear-P1
