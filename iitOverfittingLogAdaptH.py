@@ -1,4 +1,4 @@
-for k in range(5):
+for k in range(10):
     """
     Logarithmic adapt test using the custom value from Heatmaps!
     Logarithmic means that the split relationship will be adjusted proportional
@@ -216,14 +216,14 @@ for k in range(5):
         def loss(y_true, y_pred):
 
             accuracy_dependency = actual_loss(y_pred, tf.zeros_like(y_pred)) * 1e-6
-            print("HEATMAP EVALUATION: ", heatmapEvaluation)
+            print("HEATMAP EVALUATION: ", (heatmapEvaluation + accuracy_dependency) * -1)
             return tf.constant((heatmapEvaluation + accuracy_dependency) * -1, dtype=tf.float32)
 
         return loss
 
     # Split the data for training and testing
     X_train, X_test, y_train, y_test = train_test_split(preprocessed_X, preprocessed_y, test_size=0.20)
-    NUM_EPOCHS = 25
+    NUM_EPOCHS = 15
 
     def capped_relu(x):
         return tf.keras.activations.relu(x, max_value=1)
