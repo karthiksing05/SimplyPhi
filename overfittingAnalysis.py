@@ -1,6 +1,6 @@
-for i in range(5):
+for k in range(10):
     """
-    Expanding universal test to apply phi-values to neural network optimization routine!
+    In general, the main goal for this test is to involve 
     """
 
     import numpy as np
@@ -39,6 +39,7 @@ for i in range(5):
 
     ### NOTE CHATGPT DATA WOOO
     import numpy as np
+    from scipy.stats import skew, kurtosis, entropy
     import pandas as pd
     from sklearn.preprocessing import OneHotEncoder
 
@@ -69,9 +70,6 @@ for i in range(5):
         y[0][0]
     except IndexError:
         y = y.reshape((-1, 1))
-
-    # print(X[0:5])
-    # print(y[0:5])
 
     inputVars = [('cat', 2), ('num', 2), ('num', 2)]
     outputVars = [('num', 6)]
@@ -139,74 +137,125 @@ for i in range(5):
         # print(loss)
         return loss
 
-    # TODO TURN THIS INTO A GRADIENTTTT
+    def calculate_variance(array):
+        """Calculates the variance of the 2D array."""
+        return np.var(array)
+
+    def calculate_skewness(array):
+        """Calculates the skewness of the 2D array."""
+        return skew(array.flatten())
+
+    def calculate_kurtosis(array):
+        """Calculates the kurtosis of the 2D array."""
+        return kurtosis(array.flatten())
+
+    def calculate_entropy(array):
+        """Calculates the entropy of the 2D array."""
+        # Normalize the array values to get a probability distribution
+        flattened_array = array.flatten()
+        value_counts = np.bincount(flattened_array.astype(int))  # Count occurrences of each value
+        probabilities = value_counts / len(flattened_array)  # Convert to probabilities
+        return entropy(probabilities)
+
+    def calculate_gini_coef(array):
+        """Calculates the Gini coefficient for the 2D array."""
+        # Flatten the array and sort it
+        flattened_array = array.flatten()
+        sorted_array = np.sort(flattened_array)
+        n = len(sorted_array)
+        cumulative_sum = np.cumsum(sorted_array)
+        return (2 * np.sum(cumulative_sum) / (n * np.sum(sorted_array))) - (n + 1) / n
+
+    def calculate_l2_norm(array):
+        """Calculates the L2 norm of the 2D array."""
+        return np.linalg.norm(array)
+
     def phi_loss_func(model):
         """
         THIS IS THE EVALUATION BUT AS A LOSS FUNCTION!!! Need to write it as a function
         within a function because of the way that Keras auto-accepts loss functions
-
-        Solution: still need to add a small denomination of loss to associate with
         """
 
-        @tf.function
-        def loss(y_true, y_pred):
+        tpm = []
 
-            tpm = []
+        print(f"Completing {len(all_states)} iters to calculate TPM:")
+        interval = 0.1
+        percent_to_complete = interval
 
-            print(f"Completing {len(all_states)} iters to calculate TPM:")
-            interval = 0.1
-            percent_to_complete = interval
+        for i, state in enumerate(all_states):
+            npState = np.array([converter.nodes_to_input(state)]).reshape(1, -1)
+            activations = converter.get_TPM_activations(model, npState)
+            # activations = converter.output_to_nodes(model.predict(npState, verbose=0), regularization=0.01)
+            tpm.append(activations)
+            if i / len(all_states) >= percent_to_complete:
+                print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+                percent_to_complete += interval
 
-            for i, state in enumerate(all_states):
-                npState = np.array([converter.nodes_to_input(state)]).reshape(1, -1)
-                activations = converter.get_TPM_activations(model, npState)
-                # activations = converter.output_to_nodes(model.predict(npState, verbose=0), regularization=0.01)
-                tpm.append(activations)
-                if i / len(all_states) >= percent_to_complete:
-                    print(f"Completed {i} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
-                    percent_to_complete += interval
+        print(f"Completed {i + 1} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
 
-            print(f"Completed {i + 1} iters (~{round(percent_to_complete, 2) * 100}%) so far!")
+        tpm = np.array(tpm)
 
-            tpm = np.array(tpm)
+        labels = tuple([f"Node_{i}" for i in range(converter.totalNodes)])
 
-            labels = tuple([f"Node_{i}" for i in range(converter.totalNodes)])
+        substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
 
-            substrate = pyphi.Network(tpm, cm=cm, node_labels=labels)
+        sias = []
 
-            big_phi_avg = 0
+        big_phi_avg = 0
 
-            for state in all_states:
-                try:
-                    fc_sia = pyphi.new_big_phi.maximal_complex(substrate, state)
-                except Exception as e:
-                    print("ERROR THROWN: " + e)
-                if type(fc_sia) != pyphi.new_big_phi.NullPhiStructure:
-                    fc_structure = pyphi.new_big_phi.phi_structure(pyphi.Subsystem(substrate, state, nodes=fc_sia.node_indices))
-                    big_phi_avg += fc_structure.big_phi
+        subsets = [itertools.combinations(range(converter.totalNodes), r) for r in range(1, converter.totalNodes + 1)]
+        subsets = [list(subset) for r in subsets for subset in r]
 
-            big_phi_avg /= len(all_states)
+        # Calculate and print the phi value for each subsystem
+        for i in range(len(all_states)):
+            sias.append([])
+            try:
+                fc_sia = pyphi.new_big_phi.maximal_complex(substrate, all_states[i])
+            except Exception as e:
+                print("ERROR THROWN: " + e)
+            if type(fc_sia) != pyphi.new_big_phi.NullPhiStructure:
+                fc_structure = pyphi.new_big_phi.phi_structure(pyphi.Subsystem(substrate, all_states[i], nodes=fc_sia.node_indices))
+                big_phi_avg += fc_structure.big_phi
+            for subset in subsets:
+                subsystem = pyphi.Subsystem(substrate, all_states[i], subset)
+                sia = pyphi.new_big_phi.sia(subsystem)
+                sias[i].append(sia)
 
-            accuracy_dependency = actual_loss(y_pred, tf.zeros_like(y_pred)) * 1e-6
-            big_phi_avg += accuracy_dependency
+        #### HEATMAP CALCULATIONS!!!
+        # Can apply a logarithmic scale!
 
-            big_phi_avg *= -1 # NEGATING THE LOSS TO MAKE IT WORK WITH THE MODEL
-            print("BIG PHI AVG: ", big_phi_avg)
-            return tf.constant(big_phi_avg, dtype=tf.float32)
+        phiSums = [[0 for _ in range(converter.totalNodes)] for _ in range(converter.totalNodes)]
 
-        return loss
+        flattenedSias = list(itertools.chain.from_iterable(sias))
 
-    # loss!
-    # model.compile(
-    #     loss=phi_loss_func(model),
-    #     optimizer=tf.keras.optimizers.Adam(learning_rate=0.0075),
-    #     metrics=["mean_squared_error"],
-    #     run_eagerly=True
-    # )
+        for i in range(len(flattenedSias)):
+            causeRIA = flattenedSias[i].cause
+            effectRIA = flattenedSias[i].effect
+
+            if not causeRIA or not effectRIA:
+                continue
+
+            for m in list(effectRIA.mechanism):
+                for p in list(effectRIA.purview):
+                    phiSums[m][p] += (causeRIA.phi * causeRIA.selectivity + effectRIA.phi * effectRIA.selectivity)
+
+        phiSums = np.array(phiSums)
+
+        big_phi_avg /= len(all_states)
+        heatmapEvaluation = {
+            "Variance": calculate_variance(phiSums), 
+            "Skewness": calculate_skewness(phiSums),
+            "Kurtosis": calculate_kurtosis(phiSums), 
+            "L2 Norm": calculate_l2_norm(phiSums),
+            "Gini Coef": calculate_gini_coef(phiSums), 
+            "Entropy": calculate_entropy(phiSums),
+        }
+
+        return [big_phi_avg, heatmapEvaluation, phiSums]
 
     # Split the data for training and testing
     X_train, X_test, y_train, y_test = train_test_split(preprocessed_X, preprocessed_y, test_size=0.20)
-    NUM_EPOCHS = 10
+    NUM_EPOCHS = 15
 
     def capped_relu(x):
         return tf.keras.activations.relu(x, max_value=1)
@@ -220,12 +269,10 @@ for i in range(5):
         return model
 
     # Training loop using the pseudo-constant loss for training and actual loss for validation
-    def train_model(model, train_dataset, val_dataset, epochs, learning_rate, doSplit):
-
-        if doSplit:
-            split = 0.99999
-        else:
-            split = 0.0
+    def train_model(model, train_dataset, val_dataset, epochs, learning_rate, calc_phis):
+        """
+        Note that split is the fractional amount of phi in the weighted average!
+        """
 
         train_losses = []
         val_losses = []
@@ -237,19 +284,22 @@ for i in range(5):
         train_loss_metric = tf.keras.metrics.Mean(name='train_loss')
         val_loss_metric = tf.keras.metrics.Mean(name='val_loss')
         
+        phis = []
+        siaMetrics = []
+        phiSums = []
+
         # Training loop
         for epoch in range(epochs):
             print(f"Epoch {epoch + 1}/{epochs}")
-            
+
             # Training step
             for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
                 with tf.GradientTape() as tape:
                     logits = model(x_batch_train, training=True)
                     loss_value = actual_loss(y_batch_train, logits)
-                    loss_value *= (1 - split)
-                    loss_value += (split * phi_loss_func(model)(y_batch_train, logits))
 
                 grads = tape.gradient(loss_value, model.trainable_weights)
+                # print(grads, type(grads)) # TODO HERE FIGURE OUT HOW TO REPLACE THESE GRADIENTS WITH SIA ANALYSES
                 
                 optimizer.apply_gradients(zip(grads, model.trainable_weights))
                 train_loss_metric.update_state(loss_value)
@@ -259,6 +309,13 @@ for i in range(5):
                 val_logits = model(x_batch_val, training=False)
                 val_loss_value = actual_loss(y_batch_val, val_logits)
                 val_loss_metric.update_state(val_loss_value)
+
+            if calc_phis:
+                data = phi_loss_func(model)
+
+                phis.append(data[0])
+                siaMetrics.append(data[1])
+                phiSums.append(data[2])
             
             # Print metrics at the end of each epoch
             train_loss = train_loss_metric.result()
@@ -272,25 +329,18 @@ for i in range(5):
             train_loss_metric.reset_state()
             val_loss_metric.reset_state()
 
-        return train_losses, val_losses
+        return train_losses, val_losses, phis, siaMetrics, phiSums
 
-    # Convert the data to TensorFlow datasets
-    train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(32)
-    val_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(32)
+    if __name__ == "__main__":
+        # Convert the data to TensorFlow datasets
+        train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(32)
+        val_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(32)
 
-    # Create the model
-    phi_model = create_model()
+        # Create the model
+        phi_model = create_model()
 
-    # Train the model
-    phi_train_losses, phi_val_losses = train_model(phi_model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=True)
-    # print(phi_train_losses, phi_val_losses)
+        # Train the model
+        phi_train_losses, phi_val_losses, phis, siaMetrics, phiSums = train_model(phi_model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, calc_phis=True)
 
-    # Create the model (NO PHI CALCS)
-    model = create_model()
-
-    # Train the model (NO PHI CALCS)
-    train_losses, val_losses = train_model(model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, doSplit=False)
-    # print(train_losses, val_losses)
-
-    with open(f"phiMagTest{i}.pickle", "wb") as f:
-        pickle.dump([phi_train_losses, phi_val_losses, train_losses, val_losses, phi_model, model, X, y], f)
+        with open(f"overfittingAnalysis{k}.pickle", "wb") as f:
+            pickle.dump([phi_train_losses, phi_val_losses, phis, siaMetrics, phiSums, phi_model, X, y], f)
