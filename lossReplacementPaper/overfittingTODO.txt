@@ -11,7 +11,7 @@ saving phi-values, I think noticing those trends will also be really important.
 OOPSIES FIGURED OUT SILLY BUSINESS SO FIXED THAT LMAO - starting a rerun and hopefully less
 epochs gets us more data faster!
 
-Need to make placebo script after running all the new tests!
+Need to make placebo script after running all the new tests! (*** HAVENT RAN THIS YET LOL, I TABLED IT FOR LATER)
 
 Proof pickles:
 - log-H0

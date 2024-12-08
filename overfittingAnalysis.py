@@ -22,6 +22,7 @@ for k in range(10):
     import pyphi
     pyphi.config.PROGRESS_BARS = False # may need to comment this one out for bigger networks, but this is fine for now
     pyphi.config.VALIDATE_SUBSYSTEM_STATES = False
+    pyphi.config.PARTITION_TYPE = "BI"
 
     import itertools
     import pickle
@@ -342,5 +343,5 @@ for k in range(10):
         # Train the model
         phi_train_losses, phi_val_losses, phis, siaMetrics, phiSums = train_model(phi_model, train_dataset, val_dataset, epochs=NUM_EPOCHS, learning_rate=0.01, calc_phis=True)
 
-        with open(f"overfittingAnalysis{k}.pickle", "wb") as f:
+        with open(f"overfittingAnalysis{k + 40}.pickle", "wb") as f:
             pickle.dump([phi_train_losses, phi_val_losses, phis, siaMetrics, phiSums, phi_model, X, y], f)

@@ -66,6 +66,14 @@ cm = np.ones((converter.totalNodes, converter.totalNodes))
 preprocessed_X = np.array([converter.nodes_to_input(converter.input_to_nodes(sample)) for sample in X])
 preprocessed_y = np.array([converter.nodes_to_output(converter.output_to_nodes(sample)) for sample in y])
 
+# Actual loss function for validation
+def actual_loss(y_true, y_pred):
+    # print(y_true, y_pred)
+    y_true = tf.cast(y_true, tf.float32)
+    loss = tf.reduce_mean(tf.square(y_true - y_pred))
+    # print(loss)
+    return loss
+
 def phi_loss_func(epochNum):
     """
     Instead of a loss function, this is going to return a noisy number of sorts
