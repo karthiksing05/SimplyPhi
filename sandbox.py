@@ -68,7 +68,7 @@ tf.keras.utils.get_custom_objects().update({'capped_relu': capped_relu})
 
 
 # OVERFITTING ANALYSIS
-with open("overfittingAnalysis21.pickle", "rb") as f:
+with open("overfittingAnalysis26.pickle", "rb") as f:
     datalst = pickle.load(f)
 
     phi_train = datalst[0]
