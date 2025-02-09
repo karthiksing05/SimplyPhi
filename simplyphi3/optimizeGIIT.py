@@ -57,7 +57,7 @@ for k in range(5):
 
     X = data[['Category', 'Numerical1', 'Numerical2']].values
 
-    coefficients = np.array([1.5, -2.0, 3.0])
+    coefficients = np.random.randn(3)
 
     y = X.dot(coefficients) + np.random.randn(n_samples) * 0.5
 

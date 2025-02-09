@@ -1,2 +1,9 @@
-git+https://github.com/wmayner/pyphi.git@feature/iit-4.0
+graphillion==1.5
+git+https://github.com/wmayner/pyphi@feature/iit-4.0
 pyphi[visualize]
+tensorflow
+keras
+scikit-learn
+pandas
+opencv-python
+matplotlib

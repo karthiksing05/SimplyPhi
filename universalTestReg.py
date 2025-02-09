@@ -36,13 +36,15 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
-for k in range(2, 10):
+for k in range(10):
 
-    categories = ['A', 'B', 'C']
+    NUM_VARIABLES = 3
+
+    categories = ['A', 'B']
     n_samples = 200
     categorical_data = np.random.choice(categories, n_samples)
 
-    category_map = {'A': 0, 'B': 1, 'C': 2}
+    category_map = {'A': 0, 'B': 1}
     categorical_data_numeric = np.vectorize(category_map.get)(categorical_data)
 
     numerical_data1 = np.random.randn(n_samples)
@@ -56,7 +58,7 @@ for k in range(2, 10):
 
     X = data[['Category', 'Numerical1', 'Numerical2']].values
 
-    coefficients = np.array([1.5, -2.0, 3.0])
+    coefficients = np.random.randn(NUM_VARIABLES)
     y = X.dot(coefficients) + np.random.randn(n_samples) * 0.5
 
     ### MY STUFF STARTS HERE
@@ -69,7 +71,7 @@ for k in range(2, 10):
     # print(X[0:5])
     # print(y[0:5])
 
-    inputVars = [('cat', 3), ('num', 2), ('num', 2)]
+    inputVars = [('cat', 2), ('num', 3), ('num', 2)]
     outputVars = [('num', 7)]
 
     inputPreprocessors = []
@@ -134,7 +136,7 @@ for k in range(2, 10):
         return tf.keras.activations.relu(x, max_value=1)
 
     model = tf.keras.Sequential([
-        tf.keras.layers.Dense(3, activation='relu', name='hidden1'),
+        tf.keras.layers.Dense(NUM_VARIABLES, activation='relu', name='hidden1'),
         tf.keras.layers.Dense(converter.totalNodes, activation=capped_relu, name='TPMOutput'),
         tf.keras.layers.Dense(converter.numOutputSpaces, activation='relu', name='userOutput')
     ])

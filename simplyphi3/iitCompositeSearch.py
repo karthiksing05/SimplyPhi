@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from geometricIIT import compute_geometric_phi_init, compute_geometric_phi_distance, compute_geometric_phi_hull
 import os
-os.environ["PYPHI_WELCOME_OFF"] = "yes"
+os.environ["PYPHI_WELCOME_OFF"] = "yes"x
 
 import pyphi
 import time
